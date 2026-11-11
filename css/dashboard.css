@@ -269,3 +269,7 @@ kbd { display: inline-block; min-width: 18px; padding: 2px 4px; margin-right: 3p
   .bar-actions { gap: 6px; }
 }
 @media (max-width: 380px) { #link-chip { display: none; } }
+
+/* "Take me there" offer after an answer about a building */
+.offer { align-self: flex-start; background: none; border: 1px solid var(--signal); color: var(--signal); border-radius: 2px; padding: 8px 12px; font: 500 12px/1 var(--mono); letter-spacing: .03em; }
+.offer:hover { background: var(--signal); color: #fff; }

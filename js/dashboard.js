@@ -8,7 +8,7 @@
 
 const CONFIG = {
   simSpeed: 2,            // sim time multiplier
-  intentEndpoint: null,   // e.g. '/api/intent'  -> POST {text, lang} returns {target, response}
+  intentEndpoint: null,   // set automatically to '/api/ask' when the page is served by server/app.py
   rosbridgeUrl: null,     // e.g. 'ws://turtlebot.local:9090' (wire up in ROBOT below)
 };
 
@@ -170,6 +170,9 @@ const S = {
   hover: null,
   listening: false,
   lastDet: null,
+  history: [],              // recent turns for follow-up questions
+  persona: { name_en: 'Gil', name_ko: '길이' },
+  offer: null,              // building key the guide offered to walk to
 };
 
 /* ==========================================================================
@@ -177,31 +180,35 @@ const S = {
    ========================================================================== */
 const T = {
   en: {
-    console: 'Console', map: 'Map · Nav2', camera: 'Camera · YOLOv8', request: 'Request · intent', tft: 'Onboard TFT',
+    console: 'Console', map: 'Map · Nav2', camera: 'Camera · YOLOv8', request: 'Ask the guide', tft: 'Onboard TFT',
     drive: 'Manual drive', log: 'Event log', clear: 'CLEAR', send: 'SEND', dock: 'DOCK',
     map_hint: 'click map → 2D goal pose', drive_hint: 'Hold to drive. Cancels the active goal.',
-    placeholder: 'Where is the library?', listening: 'Listening…',
-    tft_ready: ['Hello!', 'Ask me where a building is'], tft_go: n => [n, 'Follow me'], tft_arrived: n => [n, 'We have arrived'],
+    placeholder: 'Ask anything about campus…', listening: 'Listening…',
+    tft_ready: () => [`Hi, I'm ${S.persona.name_en}!`, 'Ask me anything about campus'], tft_go: n => [n, 'Follow me'], tft_arrived: n => [n, 'We have arrived'],
     tft_manual: ['Manual drive', 'Operator in control'], tft_stop: ['STOP', 'Emergency stop active'],
     say_go: n => `Follow me to the ${n}.`, say_arrive: (n, a) => `We have arrived at the ${n}. ${a}`,
     say_unknown: "Sorry, I don't know that place yet. Try the library, cafe or business school.",
+    say_offline: 'I can only give directions right now. Start the guide server to ask me about the campus.',
+    take_me: n => `Take me to the ${n} →`,
     say_estop: 'Emergency stop activated.', say_blocked: 'Emergency stop is active. Release it first.',
     say_lang: 'Language set to English.', say_noplan: 'I could not find a path there.',
-    chips: ['Where is the Business School?', 'Take me to the cafe', 'I need a restroom', '도서관 어디에 있나요?'],
+    chips: ['Where is the Business School?', 'When was the library built?', 'Where can I get Wi-Fi?', 'Tell me about this campus', '공학관은 언제 지어졌어요?'],
     custom: 'Custom goal', searching: 'searching…', idle: 'idle',
   },
   ko: {
-    console: '콘솔', map: '지도 · Nav2', camera: '카메라 · YOLOv8', request: '요청 · 의도 분석', tft: '로봇 화면',
+    console: '콘솔', map: '지도 · Nav2', camera: '카메라 · YOLOv8', request: '안내 로봇에게 질문', tft: '로봇 화면',
     drive: '수동 조종', log: '이벤트 로그', clear: '지우기', send: '전송', dock: '복귀',
     map_hint: '지도 클릭 → 목표 지정', drive_hint: '누르고 있으면 이동합니다. 현재 목표는 취소됩니다.',
-    placeholder: '도서관 어디에 있나요?', listening: '듣고 있습니다…',
-    tft_ready: ['안녕하세요!', '가고 싶은 건물을 물어보세요'], tft_go: n => [n, '저를 따라오세요'], tft_arrived: n => [n, '도착했습니다'],
+    placeholder: '캠퍼스에 대해 물어보세요…', listening: '듣고 있습니다…',
+    tft_ready: () => [`안녕하세요, ${S.persona.name_ko}예요!`, '캠퍼스에 대해 물어보세요'], tft_go: n => [n, '저를 따라오세요'], tft_arrived: n => [n, '도착했습니다'],
     tft_manual: ['수동 조종', '운영자 제어 중'], tft_stop: ['정지', '비상 정지 작동 중'],
     say_go: n => `${n}(으)로 안내하겠습니다. 저를 따라오세요.`, say_arrive: (n, a) => `${n}에 도착했습니다. ${a}`,
     say_unknown: '죄송합니다, 아직 모르는 장소입니다. 도서관, 카페, 경영대학 등을 말씀해 주세요.',
+    say_offline: '지금은 길 안내만 할 수 있어요. 캠퍼스 질문은 안내 서버를 켜면 답할 수 있어요.',
+    take_me: n => `${n}(으)로 안내 →`,
     say_estop: '비상 정지가 작동되었습니다.', say_blocked: '비상 정지 상태입니다. 먼저 해제해 주세요.',
     say_lang: '한국어로 설정되었습니다.', say_noplan: '그곳으로 가는 경로를 찾지 못했습니다.',
-    chips: ['경영대학 어디에 있나요?', '카페로 데려다 주세요', '화장실이 어디예요?', 'Where is the library?'],
+    chips: ['경영대학 어디에 있나요?', '도서관은 몇 시까지 해요?', '셔틀버스 어디서 타요?', '넌 누구야?', 'What is in the Engineering Building?'],
     custom: '사용자 지정 목표', searching: '탐색 중…', idle: '대기',
   },
 };
@@ -215,7 +222,7 @@ function setLang(lang, silent) {
   document.getElementById('lang-ko').classList.toggle('on', lang === 'ko');
   document.querySelectorAll('[data-i18n]').forEach(el => { const v = T[lang][el.dataset.i18n]; if (typeof v === 'string') el.textContent = v; });
   document.getElementById('ask-text').placeholder = t('placeholder');
-  renderChips(); renderDests(); refreshTFT();
+  renderChips(); renderDests(); refreshTFT(); setOffer(S.offer);
   if (!silent) { speak(t('say_lang')); log('sys', `ui language → ${lang}`); }
 }
 
@@ -316,36 +323,67 @@ function parseLocal(text) {
   for (const k in B) if (B[k].keys.some(w => q.includes(w))) return { key: k, target: B[k].slug };
   return { key: null, target: null };
 }
+const GO_WORDS = ['where', 'take me', 'go to', 'get to', 'way to', 'bring me', 'lead me', '어디', '데려', '가고', '가는 길', '안내해', '가려면'];
 async function handleText(text) {
   text = text.trim(); if (!text) return;
   const isKo = /[가-힣]/.test(text);
   if (isKo !== (S.lang === 'ko')) setLang(isKo ? 'ko' : 'en', true);
   log('llm', `user: "${text}"`);
   const t1 = performance.now();
-  let res;
+  let res = null, source = 'local';
   if (CONFIG.intentEndpoint) {
     try {
-      const r = await fetch(CONFIG.intentEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang: S.lang }) });
+      const r = await fetch(CONFIG.intentEndpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, lang: S.lang, history: S.history }),
+      });
+      if (!r.ok) throw new Error(r.status);
       res = await r.json();
-      res.key = Object.keys(B).find(k => B[k].slug === res.target) || null;
-    } catch (e) { log('llm', 'endpoint unreachable, using local parser'); }
+      source = res.source || 'api';
+    } catch (e) { log('llm', `guide server unreachable (${e.message}), using local parser`); }
   }
   if (!res) {
+    // no server (opened as a file / GitHub Pages): directions only
     const p = parseLocal(text);
-    res = { key: p.key, target: p.target, response: p.key ? t('say_go')(bname(B[p.key])) : t('say_unknown') };
+    const wantsGo = GO_WORDS.some(w => text.toLowerCase().includes(w));
+    res = p.key
+      ? { intent: wantsGo ? 'navigate' : 'answer', target: p.key, response: wantsGo ? t('say_go')(bname(B[p.key])) : t('say_offline') }
+      : { intent: 'clarify', target: 'none', response: t('say_unknown') };
   }
-  const ms = Math.round(performance.now() - t1 + (CONFIG.intentEndpoint ? 0 : 120 + Math.random() * 90));
-  document.getElementById('parse-ms').textContent = `${ms} ms · ${CONFIG.intentEndpoint ? 'api' : 'local'}`;
-  showJSON({ target: res.target, response: res.response });
-  log('llm', `→ target=${res.target ?? 'null'}`);
+  const key = B[res.target] ? res.target : null;
+  const ms = Math.round(performance.now() - t1 + (source === 'local' ? 120 + Math.random() * 90 : 0));
+  document.getElementById('parse-ms').textContent = `${ms} ms · ${source}`;
+  showJSON({ intent: res.intent, target: res.target, response: res.response });
+  log('llm', `→ intent=${res.intent} target=${res.target}`);
+  S.history.push({ role: 'user', text }, { role: 'guide', text: res.response });
+  S.history = S.history.slice(-8);
   speak(res.response);
-  if (res.key) goTo(res.key);
+  if (res.intent === 'navigate' && key) { setOffer(null); goTo(key); }
+  else setOffer(key);
+}
+function setOffer(key) {
+  S.offer = key;
+  const btn = document.getElementById('offer');
+  btn.hidden = !key;
+  if (key) btn.textContent = t('take_me')(bname(B[key]));
 }
 function showJSON(o) {
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
-  const val = v => v === null ? '<span class="jn">null</span>' : `<span class="js">"${esc(v)}"</span>`;
-  document.getElementById('json').innerHTML =
-    `{\n  <span class="jk">"target"</span>: ${val(o.target)},\n  <span class="jk">"response"</span>: ${val(o.response)}\n}`;
+  const val = v => v === null || v === undefined ? '<span class="jn">null</span>' : `<span class="js">"${esc(v)}"</span>`;
+  document.getElementById('json').innerHTML = '{\n' + Object.keys(o).map(k => `  <span class="jk">"${k}"</span>: ${val(o[k])}`).join(',\n') + '\n}';
+}
+async function detectServer() {
+  if (!location.protocol.startsWith('http')) return;
+  try {
+    const r = await fetch('/api/health', { cache: 'no-store' });
+    if (!r.ok) return;
+    const h = await r.json();
+    CONFIG.intentEndpoint = '/api/ask';
+    if (h.persona) S.persona = h.persona;
+    document.getElementById('link-text').textContent = h.llm ? `AI · ${h.llm}` : 'AI · OFFLINE KB';
+    log('llm', `guide server online · ${h.llm ? 'LLM ' + h.llm : 'no API key, keyword fallback'} · persona ${S.persona.name_en}`);
+    refreshTFT();
+  } catch (e) { /* static hosting: stay in directions-only mode */ }
 }
 function submitText() {
   const el = document.getElementById('ask-text');
@@ -436,7 +474,7 @@ function highlightPad() { document.querySelectorAll('#pad button').forEach(b => 
    TFT mirror
    ========================================================================== */
 function refreshTFT() {
-  let lines = t('tft_ready'), state = 'READY', alert = false;
+  let lines = t('tft_ready')(), state = 'READY', alert = false;
   if (S.estop) { lines = t('tft_stop'); state = 'E-STOP'; alert = true; }
   else if (S.mode === 'MANUAL') { lines = t('tft_manual'); state = 'MANUAL'; }
   else if (S.nav) {
@@ -815,6 +853,7 @@ document.fonts && document.fonts.ready.then(() => buildStatic());
   sizeMap();
   scan();
   log('sys', 'console up · simulation mode (no rosbridge configured)');
+  detectServer();
   log('sys', 'map loaded: campus.pgm 80×60 @ 0.05 m');
   log('nav2', 'lifecycle: planner_server, controller_server active');
   log('yolo', 'model loaded: yolov8n-campus.pt (6 classes)');

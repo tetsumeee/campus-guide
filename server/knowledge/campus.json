@@ -1,0 +1,166 @@
+{
+  "_README": "SAMPLE DATA. Every name, year and fact below is a placeholder for the demo. Replace it with your university's real information before presenting. The guide only answers from this file, so whatever you put here is what it knows. Building ids must match the dashboard (library, union, cafe, engineering, business, restroom); add more by also adding them to js/dashboard.js.",
+
+  "persona": {
+    "name_en": "Gil",
+    "name_ko": "길이",
+    "name_meaning": "Short for 길잡이 (giljabi), Korean for 'guide' or 'pathfinder'.",
+    "identity": "A small TurtleBot 3 robot that works as the campus tour guide. Built by a team of students as a class project.",
+    "personality": [
+      "Friendly and upbeat, like a senior student showing a freshman around.",
+      "Proud of the campus and happy to share stories about it.",
+      "Light humour about being a small robot (being short, running on batteries, rolling instead of walking), at most once per conversation.",
+      "Honest: if it doesn't know something, it says so and points to the information desk."
+    ],
+    "greeting_en": "Hi, I'm Gil, your campus guide! Ask me where a building is, or anything about the campus.",
+    "greeting_ko": "안녕하세요, 캠퍼스 안내 로봇 길이예요! 건물 위치나 캠퍼스에 대해 무엇이든 물어보세요."
+  },
+
+  "campus": {
+    "name_en": "Sample University",
+    "name_ko": "샘플 대학교",
+    "founded": 1962,
+    "motto_en": "Truth, Service, Creativity",
+    "motto_ko": "진리, 봉사, 창의",
+    "students": "about 15,000 students",
+    "overview_en": "Sample University was founded in 1962 as a small engineering college and grew into a full university with six colleges. The campus is built around a central open square where students meet between classes.",
+    "overview_ko": "샘플 대학교는 1962년 작은 공과대학으로 시작해 6개 단과대학을 갖춘 종합대학으로 성장했습니다. 캠퍼스는 학생들이 수업 사이에 모이는 중앙 광장을 중심으로 이루어져 있습니다.",
+    "mascot_en": "A blue magpie named Kkachi",
+    "mascot_ko": "파란 까치 '까치'",
+    "info_desk_en": "The information desk is on the first floor of the Student Union, open weekdays 9 AM to 6 PM.",
+    "info_desk_ko": "안내 데스크는 학생회관 1층에 있으며 평일 오전 9시부터 오후 6시까지 운영합니다."
+  },
+
+  "buildings": [
+    {
+      "id": "library",
+      "name_en": "Main Library",
+      "name_ko": "중앙 도서관",
+      "aliases": ["library", "book", "books", "study", "reading room", "도서관", "중도", "책", "열람실"],
+      "built": 1978,
+      "renovated": 2015,
+      "floors": 5,
+      "hours_en": "Weekdays 8 AM to 11 PM, weekends 9 AM to 6 PM. The 24-hour reading room on the first floor never closes.",
+      "hours_ko": "평일 오전 8시부터 오후 11시, 주말 오전 9시부터 오후 6시까지 운영합니다. 1층 24시간 열람실은 항상 열려 있습니다.",
+      "about_en": "Five floors of books, group study rooms, and a 24-hour reading room. Students can borrow up to 10 books for two weeks.",
+      "about_ko": "5층 규모로 장서, 그룹 스터디룸, 24시간 열람실이 있습니다. 학생은 책을 최대 10권, 2주 동안 빌릴 수 있습니다.",
+      "history_en": "Opened in 1978 with a donation from the first graduating class. It was renovated in 2015, when the glass reading hall on the top floor was added.",
+      "history_ko": "1978년 첫 졸업생들의 기부로 문을 열었습니다. 2015년 리모델링 때 최상층에 유리 열람홀이 추가되었습니다.",
+      "facilities": ["group study rooms (book online)", "24-hour reading room", "printers and scanners on every floor", "rooftop reading hall"],
+      "fun_fact_en": "During exam weeks the library hands out free coffee at midnight.",
+      "fun_fact_ko": "시험 기간에는 자정에 무료 커피를 나눠 줍니다."
+    },
+    {
+      "id": "union",
+      "name_en": "Student Union",
+      "name_ko": "학생회관",
+      "aliases": ["union", "student union", "student center", "club", "clubs", "info desk", "information desk", "학생회관", "학관", "동아리", "안내 데스크"],
+      "built": 1991,
+      "floors": 4,
+      "hours_en": "Every day 7 AM to 10 PM.",
+      "hours_ko": "매일 오전 7시부터 오후 10시까지 운영합니다.",
+      "about_en": "Home of the student council, club rooms, the information desk, a bookstore and a convenience store.",
+      "about_ko": "학생회, 동아리방, 안내 데스크, 서점, 편의점이 있습니다.",
+      "history_en": "Built in 1991 after students campaigned for a building of their own. Over 80 clubs now have rooms here.",
+      "history_ko": "학생들이 자신들만의 건물을 요구한 끝에 1991년에 지어졌습니다. 지금은 80개가 넘는 동아리가 이곳에 있습니다.",
+      "facilities": ["information desk (1F)", "bookstore (1F)", "convenience store (B1)", "club rooms (3F-4F)", "student council office (2F)"],
+      "fun_fact_en": "The mural in the lobby was painted by the art club in 1991 and is repainted by each new club generation.",
+      "fun_fact_ko": "로비 벽화는 1991년 미술 동아리가 그렸고, 새 기수가 들어올 때마다 다시 칠해집니다."
+    },
+    {
+      "id": "cafe",
+      "name_en": "Campus Cafe",
+      "name_ko": "캠퍼스 카페",
+      "aliases": ["cafe", "café", "coffee", "food", "eat", "snack", "drink", "카페", "커피", "간식"],
+      "built": 2019,
+      "floors": 1,
+      "hours_en": "Weekdays 8 AM to 8 PM, Saturdays 10 AM to 5 PM, closed Sundays.",
+      "hours_ko": "평일 오전 8시부터 오후 8시, 토요일 오전 10시부터 오후 5시까지 운영하며 일요일은 쉽니다.",
+      "about_en": "Coffee, tea, sandwiches and pastries. Students get a discount with their student ID.",
+      "about_ko": "커피, 차, 샌드위치, 빵을 팝니다. 학생증을 보여주면 할인을 받을 수 있습니다.",
+      "history_en": "Opened in 2019 in the middle of the central square, replacing an old vending-machine kiosk.",
+      "history_ko": "2019년 중앙 광장 한가운데에 낡은 자판기 매점 자리에 문을 열었습니다.",
+      "facilities": ["outdoor terrace", "power outlets at every table"],
+      "fun_fact_en": "The most popular drink is the honey citron tea.",
+      "fun_fact_ko": "가장 인기 있는 메뉴는 유자차입니다."
+    },
+    {
+      "id": "engineering",
+      "name_en": "Engineering Building",
+      "name_ko": "공학관",
+      "aliases": ["engineering", "engineering building", "lab", "labs", "robotics", "computer science", "공학관", "공대", "실험실", "로봇"],
+      "built": 1962,
+      "renovated": 2008,
+      "floors": 7,
+      "hours_en": "Weekdays 7 AM to 10 PM. Labs are open to registered students 24 hours with an ID card.",
+      "hours_ko": "평일 오전 7시부터 오후 10시까지 열려 있습니다. 실험실은 등록된 학생이 학생증으로 24시간 이용할 수 있습니다.",
+      "about_en": "Classrooms and labs for mechanical, electrical and computer engineering. The robotics lab where I was built is on the fourth floor.",
+      "about_ko": "기계, 전기, 컴퓨터 공학 강의실과 실험실이 있습니다. 제가 만들어진 로봇 실험실은 4층에 있어요.",
+      "history_en": "The oldest building on campus. The university started here in 1962 as a small engineering college. A new wing was added in 2008.",
+      "history_ko": "캠퍼스에서 가장 오래된 건물입니다. 1962년 작은 공과대학으로 학교가 이곳에서 시작되었고, 2008년에 새 동이 증축되었습니다.",
+      "facilities": ["robotics lab (4F)", "maker space with 3D printers (2F)", "computer labs (3F)"],
+      "fun_fact_en": "The cornerstone by the main entrance still has the original 1962 date carved into it.",
+      "fun_fact_ko": "정문 옆 머릿돌에는 1962년이라는 원래 날짜가 아직 새겨져 있습니다."
+    },
+    {
+      "id": "business",
+      "name_en": "Business School",
+      "name_ko": "경영대학",
+      "aliases": ["business", "business school", "management", "economics", "mba", "경영", "경영대", "경영대학", "경제"],
+      "built": 2004,
+      "floors": 6,
+      "hours_en": "Weekdays 7 AM to 10 PM, Saturdays 9 AM to 5 PM.",
+      "hours_ko": "평일 오전 7시부터 오후 10시, 토요일 오전 9시부터 오후 5시까지 운영합니다.",
+      "about_en": "Lecture halls, case-study classrooms and a trading room with live market screens.",
+      "about_ko": "강의실, 사례 연구 강의실, 실시간 시장 화면이 있는 트레이딩룸이 있습니다.",
+      "history_en": "Opened in 2004, funded largely by alumni donations. Its 400-seat auditorium hosts most campus guest lectures.",
+      "history_ko": "주로 동문 기부금으로 2004년에 문을 열었습니다. 400석 규모의 강당에서 대부분의 초청 강연이 열립니다.",
+      "facilities": ["400-seat auditorium (1F)", "trading room (3F)", "career center (2F)"],
+      "fun_fact_en": "The trading room's stock ticker runs around the whole third floor.",
+      "fun_fact_ko": "트레이딩룸의 주식 시세판은 3층 전체를 한 바퀴 둘러싸고 있습니다."
+    },
+    {
+      "id": "restroom",
+      "name_en": "Restrooms",
+      "name_ko": "화장실",
+      "aliases": ["restroom", "restrooms", "toilet", "bathroom", "wc", "washroom", "화장실"],
+      "about_en": "Public restrooms, including an accessible restroom and a baby-changing station.",
+      "about_ko": "장애인 화장실과 기저귀 교환대가 있는 공용 화장실입니다.",
+      "hours_en": "Open whenever the campus is open.",
+      "hours_ko": "캠퍼스가 열려 있는 동안 이용할 수 있습니다."
+    }
+  ],
+
+  "faqs": [
+    {
+      "keywords": ["wifi", "wi-fi", "internet", "와이파이", "인터넷"],
+      "a_en": "Connect to the 'Campus-Guest' Wi-Fi network. It's free and doesn't need a password.",
+      "a_ko": "'Campus-Guest' 와이파이에 연결하세요. 무료이고 비밀번호가 필요 없습니다."
+    },
+    {
+      "keywords": ["parking", "park", "car", "주차"],
+      "a_en": "Visitor parking is behind the Business School. The first hour is free.",
+      "a_ko": "방문객 주차장은 경영대학 뒤에 있습니다. 첫 1시간은 무료입니다."
+    },
+    {
+      "keywords": ["bus", "subway", "station", "shuttle", "버스", "지하철", "셔틀", "역"],
+      "a_en": "A free shuttle bus leaves the main gate every 15 minutes for the subway station.",
+      "a_ko": "정문에서 지하철역까지 가는 무료 셔틀버스가 15분마다 출발합니다."
+    },
+    {
+      "keywords": ["lunch", "cafeteria", "dining", "restaurant", "학식", "식당", "점심"],
+      "a_en": "The student cafeteria is in the basement of the Student Union. Lunch is served from 11:30 to 2.",
+      "a_ko": "학생 식당은 학생회관 지하에 있습니다. 점심은 11시 30분부터 2시까지입니다."
+    },
+    {
+      "keywords": ["lost", "found", "분실", "잃어"],
+      "a_en": "Lost and found is at the information desk on the first floor of the Student Union.",
+      "a_ko": "분실물 센터는 학생회관 1층 안내 데스크에 있습니다."
+    },
+    {
+      "keywords": ["atm", "bank", "money", "은행", "현금"],
+      "a_en": "There is an ATM next to the convenience store in the Student Union basement.",
+      "a_ko": "학생회관 지하 편의점 옆에 ATM이 있습니다."
+    }
+  ]
+}

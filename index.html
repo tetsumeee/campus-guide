@@ -224,8 +224,8 @@
       <div class="step">
         <div class="n"><span>02</span><span>PARSE</span></div>
         <h3>Understand</h3>
-        <p>The Python server sends the text to an LLM, which pulls out the destination and writes a short spoken reply.</p>
-        <div class="io"><b>in</b>&nbsp; free-form question<br><b>out</b> {target, response}</div>
+        <p>Gil, the guide persona, decides: lead the way, or answer from the campus knowledge base (history, hours, what's inside).</p>
+        <div class="io"><b>in</b>&nbsp; free-form question<br><b>out</b> {intent, target, response}</div>
       </div>
       <div class="step">
         <div class="n"><span>03</span><span>DRIVE</span></div>
@@ -243,7 +243,7 @@
 
 <pre class="trace"><span class="c"># one request, end to end</span>
 <span class="k">user </span> ▸ <span class="s">"경영대학 어디에 있나요?"</span>                      <span class="c">// web speech, ko-KR</span>
-<span class="k">llm  </span> ▸ {<span class="s">"target"</span>: <span class="s">"business_dept"</span>, <span class="s">"response"</span>: <span class="s">"Follow me to the Business building!"</span>}
+<span class="k">gemini</span>▸ {<span class="s">"intent"</span>: <span class="s">"navigate"</span>, <span class="s">"target"</span>: <span class="s">"business_dept"</span>, <span class="s">"response"</span>: <span class="s">"Follow me to the Business building!"</span>}
 <span class="k">nav2 </span> ▸ NavigateToPose  x=<span class="g">2.10</span>  y=<span class="g">0.85</span>  θ=<span class="g">1.57</span>   <span class="c">// map: campus.pgm</span>
 <span class="k">yolo </span> ▸ business_dept  conf=<span class="g">0.91</span>  e<sub>x</sub>=<span class="g">+12px</span>  h=<span class="g">0.64H</span>  → <span class="g">ARRIVED</span>
 <span class="k">tts  </span> ▸ gTTS(lang=<span class="s">"ko"</span>) → usb-speaker  <span class="s">"경영대학에 도착했습니다…"</span></pre>
@@ -448,7 +448,7 @@
     <div class="stack">
       <div><h4>OS</h4><p>Ubuntu Linux<br>ROS 2 Humble / Jazzy</p></div>
       <div><h4>Navigation</h4><p><code>slam_toolbox</code><br><code>nav2</code><br>.pgm occupancy map</p></div>
-      <div><h4>AI / Vision</h4><p>YOLOv8 · OpenCV<br>Gemini 1.5 Flash or gpt-4o-mini<br>gTTS</p></div>
+      <div><h4>AI / Vision</h4><p>YOLOv8 · OpenCV<br>Gemini + campus knowledge base<br>gTTS</p></div>
       <div><h4>Interface</h4><p>Python · Flask / FastAPI<br>HTML5 + Web Speech API<br>rosbridge</p></div>
     </div>
   </div>
