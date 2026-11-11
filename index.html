@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CGR-1 · Campus Guide Robot</title>
+  <meta name="description" content="An autonomous, multilingual campus tour guide built on TurtleBot 3 Burger, ROS 2, Nav2 and YOLOv8.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23111' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3.5' fill='%23FF4F00'/%3E%3Cpath d='M12 12h9.5' stroke='%23111' stroke-width='2'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- ============================== TOP BAR ============================== -->
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="12" cy="12" r="3.5" fill="#FF4F00"/>
+        <path d="M12 12h9.5" stroke="currentColor" stroke-width="1.8"/>
+      </svg>
+      CGR-1 <small>CAMPUS GUIDE ROBOT</small>
+    </a>
+    <nav class="nav">
+      <a href="#concept">Concept</a>
+      <a href="#how">How it works</a>
+      <a href="#navigation">Navigation</a>
+      <a href="#interface">Interface</a>
+      <a href="#hardware">Hardware</a>
+      <a href="#team">Team</a>
+    </nav>
+    <a class="btn" href="dashboard.html">Dashboard <span class="arrow">→</span></a>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- ============================== HERO ============================== -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="hero-meta">
+        <span class="tag"><span class="dot"></span>Prototype · 2026</span>
+        <span class="tag">ROS 2 / Nav2</span>
+        <span class="tag">한국어 · ENG</span>
+      </div>
+      <h1>Ask where a building is. <em>It takes you there.</em></h1>
+      <p class="lead">CGR-1 is an autonomous campus tour guide built on a TurtleBot&nbsp;3 Burger. Speak to it in Korean or English, it plans a route, drives you to the building and explains it out loud.</p>
+      <div class="hero-cta">
+        <a class="btn" href="dashboard.html">Open live dashboard <span class="arrow">→</span></a>
+        <a class="btn ghost" href="#how">How it works</a>
+      </div>
+    </div>
+
+    <!-- Side elevation of the robot -->
+    <figure class="hero-figure">
+      <svg viewBox="0 0 640 520" role="img" aria-label="Side elevation of CGR-1: a TurtleBot 3 Burger with an added camera, add-on deck, power bank, speaker, microphone and TFT screen.">
+        <defs>
+          <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#111213" stroke-opacity=".35" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <g fill="none" stroke="#111213" stroke-width="1.4" font-family="IBM Plex Mono, monospace">
+
+          <!-- ground -->
+          <line x1="20" y1="478" x2="380" y2="478"/>
+          <rect x="20" y="478" width="360" height="8" fill="url(#hatch)" stroke="none"/>
+
+          <!-- scan plane -->
+          <line x1="28" y1="167" x2="372" y2="167" stroke-dasharray="2 4" stroke-opacity=".5"/>
+          <text x="28" y="160" fill="#6E7076" stroke="none" font-size="9.5">SCAN PLANE · 360°</text>
+
+          <!-- stock standoffs -->
+          <line x1="90" y1="206" x2="90" y2="356"/><line x1="290" y1="206" x2="290" y2="356"/>
+
+          <!-- stock plates -->
+          <rect x="80" y="356" width="220" height="6" fill="#F3F2EE"/>
+          <rect x="80" y="304" width="220" height="6" fill="#F3F2EE"/>
+          <rect x="80" y="252" width="220" height="6" fill="#F3F2EE"/>
+          <rect x="80" y="200" width="220" height="6" fill="#F3F2EE"/>
+
+          <!-- battery / opencr / pi -->
+          <rect x="115" y="318" width="150" height="32" fill="#EAE8E2"/>
+          <text x="190" y="338" text-anchor="middle" fill="#111213" stroke="none" font-size="10">LiPo 11.1 V</text>
+          <rect x="120" y="266" width="150" height="32" fill="#EAE8E2"/>
+          <text x="195" y="286" text-anchor="middle" fill="#111213" stroke="none" font-size="10">OpenCR 1.0</text>
+          <rect x="130" y="214" width="130" height="32" fill="#EAE8E2"/>
+          <text x="195" y="234" text-anchor="middle" fill="#111213" stroke="none" font-size="10">RPi 4</text>
+
+          <!-- LiDAR -->
+          <rect x="145" y="176" width="90" height="24" fill="#F3F2EE"/>
+          <rect x="158" y="158" width="64" height="18" rx="3" fill="#111213"/>
+
+          <!-- caster + wheel -->
+          <line x1="105" y1="362" x2="105" y2="462"/>
+          <circle cx="105" cy="470" r="8" fill="#F3F2EE"/>
+          <circle cx="190" cy="425" r="53" fill="#F3F2EE" stroke-width="1.6"/>
+          <circle cx="190" cy="425" r="42"/>
+          <circle cx="190" cy="425" r="9" fill="#111213"/>
+          <g stroke-opacity=".5"><line x1="190" y1="383" x2="190" y2="467"/><line x1="148" y1="425" x2="232" y2="425"/></g>
+
+          <!-- ===== project additions (orange) ===== -->
+          <g stroke="#FF4F00">
+            <line x1="92" y1="128" x2="92" y2="200"/><line x1="288" y1="128" x2="288" y2="200"/>
+            <rect x="80" y="122" width="220" height="6" fill="#FFE3D6"/>
+            <!-- power bank -->
+            <rect x="100" y="94" width="130" height="26" fill="#FFF1EA"/>
+            <text x="165" y="111" text-anchor="middle" fill="#C23B00" stroke="none" font-size="10">10 000 mAh</text>
+            <!-- speaker -->
+            <rect x="110" y="70" width="50" height="22" fill="#FFF1EA"/>
+            <g stroke-width="1"><line x1="120" y1="75" x2="120" y2="87"/><line x1="128" y1="75" x2="128" y2="87"/><line x1="136" y1="75" x2="136" y2="87"/><line x1="144" y1="75" x2="144" y2="87"/><line x1="152" y1="75" x2="152" y2="87"/></g>
+            <!-- mic -->
+            <rect x="175" y="76" width="10" height="18" rx="5" fill="#FFF1EA"/>
+            <!-- TFT -->
+            <line x1="290" y1="100" x2="290" y2="122"/>
+            <rect x="285" y="54" width="10" height="46" fill="#FFF1EA"/>
+            <!-- camera -->
+            <rect x="300" y="214" width="18" height="22" fill="#FFF1EA"/>
+            <rect x="318" y="219" width="6" height="12" fill="#FF4F00"/>
+            <line x1="324" y1="225" x2="362" y2="205" stroke-dasharray="3 3"/>
+            <line x1="324" y1="225" x2="362" y2="243" stroke-dasharray="3 3"/>
+          </g>
+
+          <!-- dimensions -->
+          <g stroke-width="1" stroke-opacity=".7">
+            <line x1="80" y1="500" x2="300" y2="500"/><line x1="80" y1="494" x2="80" y2="506"/><line x1="300" y1="494" x2="300" y2="506"/>
+            <line x1="44" y1="158" x2="44" y2="478"/><line x1="38" y1="158" x2="50" y2="158"/><line x1="38" y1="478" x2="50" y2="478"/>
+            <line x1="44" y1="54" x2="44" y2="158" stroke="#FF4F00"/><line x1="38" y1="54" x2="50" y2="54" stroke="#FF4F00"/>
+          </g>
+          <text x="190" y="515" text-anchor="middle" fill="#3A3C40" stroke="none" font-size="10">138 mm</text>
+          <text transform="translate(36 318) rotate(-90)" text-anchor="middle" fill="#3A3C40" stroke="none" font-size="10">192 mm · stock</text>
+          <text transform="translate(36 106) rotate(-90)" text-anchor="middle" fill="#C23B00" stroke="none" font-size="10">add-on</text>
+
+          <!-- leaders -->
+          <g stroke-width="1">
+            <polyline points="135,70 135,30 420,30" stroke="#FF4F00"/>
+            <line x1="295" y1="62" x2="420" y2="62" stroke="#FF4F00"/>
+            <line x1="230" y1="108" x2="420" y2="108" stroke="#FF4F00"/>
+            <line x1="222" y1="162" x2="420" y2="150"/>
+            <polyline points="309,214 309,196 420,196" stroke="#FF4F00"/>
+            <line x1="260" y1="242" x2="420" y2="250"/>
+            <line x1="270" y1="282" x2="420" y2="300"/>
+            <line x1="265" y1="334" x2="420" y2="352"/>
+            <line x1="236" y1="440" x2="420" y2="410"/>
+          </g>
+          <g stroke="none">
+            <circle cx="135" cy="70" r="2.5" fill="#FF4F00"/><circle cx="295" cy="62" r="2.5" fill="#FF4F00"/>
+            <circle cx="230" cy="108" r="2.5" fill="#FF4F00"/><circle cx="222" cy="162" r="2.5" fill="#111213"/>
+            <circle cx="309" cy="214" r="2.5" fill="#FF4F00"/><circle cx="260" cy="242" r="2.5" fill="#111213"/>
+            <circle cx="270" cy="282" r="2.5" fill="#111213"/><circle cx="265" cy="334" r="2.5" fill="#111213"/>
+            <circle cx="236" cy="440" r="2.5" fill="#111213"/>
+          </g>
+
+          <!-- labels -->
+          <g stroke="none" font-size="11" fill="#111213">
+            <text x="428" y="34"><tspan fill="#FF4F00">01</tspan>  USB speaker + mic</text>
+            <text x="428" y="66"><tspan fill="#FF4F00">02</tspan>  2.0" SPI TFT</text>
+            <text x="428" y="112"><tspan fill="#FF4F00">03</tspan>  Power bank 5 V / 3 A</text>
+            <text x="428" y="154"><tspan fill="#6E7076">04</tspan>  360° LiDAR (LDS)</text>
+            <text x="428" y="200"><tspan fill="#FF4F00">05</tspan>  Pi Camera · YOLOv8</text>
+            <text x="428" y="254"><tspan fill="#6E7076">06</tspan>  Raspberry Pi 4</text>
+            <text x="428" y="304"><tspan fill="#6E7076">07</tspan>  OpenCR 1.0</text>
+            <text x="428" y="356"><tspan fill="#6E7076">08</tspan>  LiPo drive battery</text>
+            <text x="428" y="414"><tspan fill="#6E7076">09</tspan>  Dynamixel ×2 drive</text>
+          </g>
+        </g>
+      </svg>
+      <figcaption class="fig-caption">
+        <span>FIG. 1 — SIDE ELEVATION, FRONT → RIGHT</span>
+        <span class="legend"><span><i></i>Stock Burger</span><span><i class="add"></i>Our additions</span></span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="wrap">
+    <div class="specs">
+      <div class="spec"><div class="v">360<small>°</small></div><div class="k">LiDAR scan for SLAM + avoidance</div></div>
+      <div class="spec"><div class="v">2<small> lang</small></div><div class="k">Korean and English, switch any time</div></div>
+      <div class="spec"><div class="v">2<small> modes</small></div><div class="k">Onboard voice · phone via QR</div></div>
+      <div class="spec"><div class="v">0.22<small> m/s</small></div><div class="k">Max linear velocity</div></div>
+      <div class="spec"><div class="v">10k<small> mAh</small></div><div class="k">Separate rail for Pi, camera, audio</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CONCEPT ============================== -->
+<section id="concept">
+  <div class="wrap sec">
+    <div class="sec-head">
+      <div class="sec-index"><b>01</b> — Concept</div>
+      <div>
+        <h2 class="sec-title">A tour guide that drives instead of pointing.</h2>
+      </div>
+    </div>
+    <div class="concept-grid">
+      <div></div>
+      <p>We built a <strong>scaled-down cardboard and foam model of our university campus</strong> and gave it a resident guide. A visitor walks up, asks where a building is, and the robot doesn't hand over a map. It leads the way.</p>
+      <p>Everything runs on the robot: <strong>ROS 2 on a Raspberry Pi 4</strong> handles mapping and driving, a <strong>YOLOv8</strong> model keeps it on course where the LiDAR can't see walls, and a language model turns a spoken question into a navigation goal.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== HOW IT WORKS ============================== -->
+<section id="how">
+  <div class="wrap sec">
+    <div class="sec-head">
+      <div class="sec-index"><b>02</b> — How it works</div>
+      <div>
+        <h2 class="sec-title">From a question to an arrival in four stages.</h2>
+        <p class="sec-lede">Each stage is a separate piece of the system, so you can watch every one of them on the dashboard while the robot moves.</p>
+      </div>
+    </div>
+
+    <div class="pipeline">
+      <div class="step">
+        <div class="n"><span>01</span><span>ASK</span></div>
+        <h3>Ask</h3>
+        <p>Talk to the robot's USB microphone, or scan the QR code on the chassis and speak or type on your phone.</p>
+        <div class="io"><b>in</b>&nbsp; voice · text<br><b>out</b> utf-8 string, ko-KR / en-US</div>
+      </div>
+      <div class="step">
+        <div class="n"><span>02</span><span>PARSE</span></div>
+        <h3>Understand</h3>
+        <p>The Python server sends the text to an LLM, which pulls out the destination and writes a short spoken reply.</p>
+        <div class="io"><b>in</b>&nbsp; free-form question<br><b>out</b> {target, response}</div>
+      </div>
+      <div class="step">
+        <div class="n"><span>03</span><span>DRIVE</span></div>
+        <h3>Drive</h3>
+        <p>The target maps to (X, Y) on the saved SLAM map. Nav2 plans a route and drives it, steering around feet and dropped pens.</p>
+        <div class="io"><b>in</b>&nbsp; NavigateToPose(x, y, θ)<br><b>out</b> /cmd_vel</div>
+      </div>
+      <div class="step">
+        <div class="n"><span>04</span><span>ARRIVE</span></div>
+        <h3>Explain</h3>
+        <p>Once the camera confirms arrival, gTTS reads out a description of the building and the TFT screen updates.</p>
+        <div class="io"><b>in</b>&nbsp; goal reached<br><b>out</b> USB speaker · 2.0" TFT</div>
+      </div>
+    </div>
+
+<pre class="trace"><span class="c"># one request, end to end</span>
+<span class="k">user </span> ▸ <span class="s">"경영대학 어디에 있나요?"</span>                      <span class="c">// web speech, ko-KR</span>
+<span class="k">llm  </span> ▸ {<span class="s">"target"</span>: <span class="s">"business_dept"</span>, <span class="s">"response"</span>: <span class="s">"Follow me to the Business building!"</span>}
+<span class="k">nav2 </span> ▸ NavigateToPose  x=<span class="g">2.10</span>  y=<span class="g">0.85</span>  θ=<span class="g">1.57</span>   <span class="c">// map: campus.pgm</span>
+<span class="k">yolo </span> ▸ business_dept  conf=<span class="g">0.91</span>  e<sub>x</sub>=<span class="g">+12px</span>  h=<span class="g">0.64H</span>  → <span class="g">ARRIVED</span>
+<span class="k">tts  </span> ▸ gTTS(lang=<span class="s">"ko"</span>) → usb-speaker  <span class="s">"경영대학에 도착했습니다…"</span></pre>
+  </div>
+</section>
+
+<!-- ============================== NAVIGATION ============================== -->
+<section id="navigation">
+  <div class="wrap sec">
+    <div class="sec-head">
+      <div class="sec-index"><b>03</b> — Navigation</div>
+      <div>
+        <h2 class="sec-title">Mapped once by hand. Driven by itself after that.</h2>
+      </div>
+    </div>
+
+    <!-- SLAM + Nav2 -->
+    <div class="feature">
+      <div class="label"><b>3.1</b>SLAM + Nav2</div>
+      <div>
+        <h3>A 2D map of the campus, drawn by the LiDAR.</h3>
+        <p>We drive the robot around the cardboard campus once from a laptop keyboard. <span class="mono">slam_toolbox</span> turns the 360° scans into an occupancy grid, which we save as a <span class="mono">.pgm</span> map.</p>
+        <p>After that, every building is just a coordinate. Nav2 plans a path on the map, follows it, and replans when something steps in the way.</p>
+        <ul class="kv">
+          <li><span>mapping</span><span>slam_toolbox, teleop over keyboard</span></li>
+          <li><span>map format</span><span>campus.pgm + campus.yaml</span></li>
+          <li><span>planner</span><span>Nav2 global + local costmaps</span></li>
+          <li><span>goals</span><span>one (x, y, θ) per building</span></li>
+        </ul>
+      </div>
+      <figure class="diagram">
+        <svg viewBox="0 0 480 330" role="img" aria-label="Occupancy grid of the campus model with a planned path around buildings.">
+          <defs>
+            <pattern id="grid" width="12" height="12" patternUnits="userSpaceOnUse">
+              <path d="M12 0H0V12" fill="none" stroke="#111213" stroke-opacity=".07"/>
+            </pattern>
+          </defs>
+          <rect width="480" height="330" fill="#B9B7B0"/>
+          <rect x="16" y="16" width="448" height="298" fill="#fff"/>
+          <rect x="16" y="16" width="448" height="298" fill="url(#grid)"/>
+          <rect x="16" y="16" width="448" height="298" fill="none" stroke="#111213" stroke-width="4"/>
+          <!-- inflation -->
+          <g fill="#111213" fill-opacity=".08">
+            <rect x="46" y="40" width="116" height="84"/><rect x="290" y="34" width="150" height="76"/>
+            <rect x="188" y="146" width="104" height="80"/><rect x="330" y="186" width="114" height="104"/>
+            <rect x="40" y="208" width="92" height="86"/>
+          </g>
+          <!-- buildings -->
+          <g fill="#111213">
+            <rect x="58" y="52" width="92" height="60"/><rect x="302" y="46" width="126" height="52"/>
+            <rect x="200" y="158" width="80" height="56"/><rect x="342" y="198" width="90" height="80"/>
+            <rect x="52" y="220" width="68" height="62"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="9" fill="#fff">
+            <text x="66" y="66">LIBRARY</text><text x="310" y="60">STUDENT UNION</text>
+            <text x="208" y="172">CAFE</text><text x="350" y="212">ENGINEERING</text><text x="60" y="234">WC</text>
+          </g>
+          <!-- path -->
+          <polyline points="168,288 168,250 176,236 300,236 314,222 314,150 322,140 360,128" fill="none" stroke="#FF4F00" stroke-width="2.5" stroke-dasharray="6 4"/>
+          <!-- goal -->
+          <g transform="translate(360 128)"><circle r="7" fill="none" stroke="#FF4F00" stroke-width="2"/><circle r="2.5" fill="#FF4F00"/></g>
+          <!-- robot with scan -->
+          <g transform="translate(168 292)">
+            <circle r="40" fill="#FF4F00" fill-opacity=".06" stroke="#FF4F00" stroke-opacity=".3" stroke-dasharray="2 3"/>
+            <circle r="8" fill="#111213"/><path d="M0 0V-12" stroke="#111213" stroke-width="2.5"/>
+          </g>
+        </svg>
+        <figcaption><span>FIG. 2 — OCCUPANCY GRID + GLOBAL PLAN</span><span>■ occupied ▫ free ▩ unknown</span></figcaption>
+      </figure>
+    </div>
+
+    <!-- Open space / YOLO -->
+    <div class="feature">
+      <div class="label"><b>3.2</b>Open-space fix</div>
+      <div>
+        <h3>When the LiDAR goes blind, the camera steers.</h3>
+        <p>In the middle of an open square the LiDAR's beams don't reach any wall, so the robot loses its position and drifts. We fixed this with <strong>natural landmark tracking</strong>.</p>
+        <p>A lightweight <span class="mono">YOLOv8</span> model, trained on our cardboard buildings, runs on the Pi Camera. It gives two signals that are simple enough to control on.</p>
+        <ul class="kv">
+          <li><span>steering</span><span>target drifts left of centre → steer left until e<sub>x</sub> ≈ 0</span></li>
+          <li><span>distance</span><span>bounding box grows as we approach; tall enough = arrived</span></li>
+          <li><span>model</span><span>YOLOv8n, custom classes per building</span></li>
+        </ul>
+      </div>
+      <figure class="diagram">
+        <svg viewBox="0 0 480 330" role="img" aria-label="Camera frame showing a detected building, the horizontal offset from centre and the bounding-box height used to decide arrival.">
+          <rect x="10" y="10" width="440" height="270" fill="#17181A"/>
+          <!-- floor perspective -->
+          <g stroke="#fff" stroke-opacity=".08">
+            <line x1="10" y1="150" x2="450" y2="150"/>
+            <line x1="230" y1="150" x2="10" y2="280"/><line x1="230" y1="150" x2="450" y2="280"/>
+            <line x1="230" y1="150" x2="120" y2="280"/><line x1="230" y1="150" x2="340" y2="280"/>
+          </g>
+          <!-- building -->
+          <rect x="262" y="88" width="88" height="128" fill="#3A3C40"/>
+          <rect x="250" y="80" width="112" height="14" fill="#4A4C51"/>
+          <g fill="#17181A">
+            <rect x="274" y="106" width="16" height="16"/><rect x="298" y="106" width="16" height="16"/><rect x="322" y="106" width="16" height="16"/>
+            <rect x="274" y="134" width="16" height="16"/><rect x="298" y="134" width="16" height="16"/><rect x="322" y="134" width="16" height="16"/>
+            <rect x="296" y="180" width="20" height="36"/>
+          </g>
+          <!-- centre line -->
+          <line x1="230" y1="10" x2="230" y2="280" stroke="#fff" stroke-opacity=".5" stroke-dasharray="4 4"/>
+          <!-- bbox -->
+          <rect x="246" y="74" width="120" height="148" fill="none" stroke="#FF4F00" stroke-width="2"/>
+          <rect x="246" y="58" width="128" height="16" fill="#FF4F00"/>
+          <text x="252" y="70" font-family="IBM Plex Mono, monospace" font-size="10" fill="#fff">business_dept 0.91</text>
+          <!-- e_x arrow -->
+          <g stroke="#fff" stroke-width="1.2"><line x1="230" y1="40" x2="306" y2="40"/><path d="M300 36l6 4-6 4" fill="none"/><line x1="306" y1="34" x2="306" y2="74" stroke-dasharray="2 2" stroke-opacity=".6"/></g>
+          <text x="238" y="33" font-family="IBM Plex Mono, monospace" font-size="10" fill="#fff">eₓ = +76 px</text>
+          <!-- height bracket -->
+          <g stroke="#fff" stroke-width="1.2"><line x1="378" y1="74" x2="378" y2="222"/><line x1="373" y1="74" x2="383" y2="74"/><line x1="373" y1="222" x2="383" y2="222"/></g>
+          <text x="388" y="152" font-family="IBM Plex Mono, monospace" font-size="10" fill="#fff">h</text>
+          <!-- gauge -->
+          <rect x="432" y="20" width="8" height="250" fill="none" stroke="#fff" stroke-opacity=".3"/>
+          <rect x="432" y="133" width="8" height="137" fill="#FF4F00"/>
+          <line x1="426" y1="115" x2="446" y2="115" stroke="#fff" stroke-width="1.5"/>
+          <text x="426" y="111" font-family="IBM Plex Mono, monospace" font-size="9" fill="#fff" text-anchor="end">arrive</text>
+          <!-- formulas -->
+          <g font-family="IBM Plex Mono, monospace" font-size="11.5" fill="#111213">
+            <text x="10" y="306">ω = −K<tspan font-size="8" dy="3">p</tspan><tspan dy="-3"> · eₓ / W</tspan></text>
+            <text x="250" y="306">arrived ⇔ h ≥ 0.62 · H</text>
+          </g>
+          <text x="10" y="324" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6E7076">steer toward the landmark</text>
+          <text x="250" y="324" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="#6E7076">stop when it fills the frame</text>
+        </svg>
+        <figcaption><span>FIG. 3 — CAMERA FRAME, LANDMARK LOCK</span><span>threshold tuned per building</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== INTERFACE ============================== -->
+<section id="interface">
+  <div class="wrap sec">
+    <div class="sec-head">
+      <div class="sec-index"><b>04</b> — Interface</div>
+      <div>
+        <h2 class="sec-title">Two ways to talk to it. One big red button.</h2>
+        <p class="sec-lede">Both modes run in parallel, so a visitor can speak to the robot directly while another person drives the demo from a phone.</p>
+      </div>
+    </div>
+
+    <div class="modes">
+      <div class="mode">
+        <div class="eyebrow"><span>Mode A</span><span>Hands-free</span></div>
+        <h3>Onboard voice</h3>
+        <p>Stand in front of the robot and ask out loud. No phone, no app, nothing to install.</p>
+        <ul>
+          <li>Onboard USB microphone</li>
+          <li>Answers through the USB speaker</li>
+          <li>Status on the 2.0" TFT, e.g. "Driving to Cafe"</li>
+        </ul>
+      </div>
+      <div class="mode">
+        <div class="eyebrow"><span>Mode B</span><span>BYOD · QR</span></div>
+        <h3>Phone web app</h3>
+        <p>Scan the QR code on the chassis. A lightweight Flask/FastAPI + HTML5 page opens on your phone.</p>
+        <ul>
+          <li>Web Speech API voice input, or type in noisy halls</li>
+          <li>Instant toggle between 한국어 and ENG</li>
+          <li>Virtual joystick for manual override during demos</li>
+        </ul>
+      </div>
+      <div class="estop-note">
+        <span class="estop-btn" aria-hidden="true"></span>
+        <p><strong>E-Stop on every screen.</strong> One tap publishes <span class="mono">/cmd_vel = 0</span> and locks autonomous driving until it's cleared.</p>
+        <a class="btn ghost" href="dashboard.html">Try it <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== HARDWARE ============================== -->
+<section id="hardware">
+  <div class="wrap sec">
+    <div class="sec-head">
+      <div class="sec-index"><b>05</b> — Hardware &amp; stack</div>
+      <div>
+        <h2 class="sec-title">Bill of materials.</h2>
+        <p class="sec-lede">A stock TurtleBot&nbsp;3 Burger plus six parts. The power bank is the important one: the drive battery runs the wheels, so the Pi never browns out when the motors pull current.</p>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Part</th><th>Role in the system</th></tr></thead>
+        <tbody>
+          <tr><td class="id">H-01</td><td class="part">TurtleBot 3 Burger</td><td>Differential-drive base with OpenCR controller and Dynamixel motors</td></tr>
+          <tr><td class="id">H-02</td><td class="part">Raspberry Pi 4</td><td>Ubuntu + ROS 2 Humble / Jazzy. Runs Nav2, vision and the web server</td></tr>
+          <tr><td class="id">H-03</td><td class="part">360° LiDAR (LDS)</td><td>SLAM mapping and live obstacle avoidance</td></tr>
+          <tr><td class="id">H-04</td><td class="part">Raspberry Pi Camera <span class="add">ADDED</span></td><td>YOLOv8 landmark detection and open-space steering</td></tr>
+          <tr><td class="id">H-05</td><td class="part">USB speaker + microphone <span class="add">ADDED</span></td><td>Single-cable audio. Hears questions, plays gTTS answers</td></tr>
+          <tr><td class="id">H-06</td><td class="part">2.0" SPI TFT <span class="add">ADDED</span></td><td>Shows the robot's current state and destination</td></tr>
+          <tr><td class="id">H-07</td><td class="part">Power bank 10 000 mAh, 5 V / 3 A <span class="add">ADDED</span></td><td>Separate rail for Pi, camera and speaker</td></tr>
+          <tr><td class="id">H-08</td><td class="part">3D-printed add-on deck <span class="add">ADDED</span></td><td>Mounts power bank, audio and TFT above the LiDAR scan plane</td></tr>
+          <tr><td class="id">H-09</td><td class="part">Campus model <span class="add">BUILT</span></td><td>Scaled cardboard and foam buildings: the robot's world</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stack">
+      <div><h4>OS</h4><p>Ubuntu Linux<br>ROS 2 Humble / Jazzy</p></div>
+      <div><h4>Navigation</h4><p><code>slam_toolbox</code><br><code>nav2</code><br>.pgm occupancy map</p></div>
+      <div><h4>AI / Vision</h4><p>YOLOv8 · OpenCV<br>Gemini 1.5 Flash or gpt-4o-mini<br>gTTS</p></div>
+      <div><h4>Interface</h4><p>Python · Flask / FastAPI<br>HTML5 + Web Speech API<br>rosbridge</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== TEAM ============================== -->
+<!-- Replace the names, roles and links below. To add a photo, put an <img src="img/name.jpg" alt=""> inside .avatar -->
+<section id="team">
+  <div class="wrap sec">
+    <div class="sec-head">
+      <div class="sec-index"><b>06</b> — Team</div>
+      <div>
+        <h2 class="sec-title">The people behind CGR&#8209;1.</h2>
+      </div>
+    </div>
+
+    <div class="team">
+      <article class="member">
+        <div class="avatar" data-id="T-01">AA</div>
+        <h3>Member Name</h3>
+        <div class="role">Navigation &amp; SLAM</div>
+        <ul><li>slam_toolbox mapping</li><li>Nav2 tuning</li><li>Building goal poses</li></ul>
+        <div class="links"><a href="#">GitHub</a><a href="#">LinkedIn</a></div>
+      </article>
+      <article class="member">
+        <div class="avatar" data-id="T-02">BB</div>
+        <h3>Member Name</h3>
+        <div class="role">Computer Vision</div>
+        <ul><li>YOLOv8 dataset + training</li><li>Landmark steering</li><li>Arrival detection</li></ul>
+        <div class="links"><a href="#">GitHub</a><a href="#">LinkedIn</a></div>
+      </article>
+      <article class="member">
+        <div class="avatar" data-id="T-03">CC</div>
+        <h3>Member Name</h3>
+        <div class="role">AI &amp; Voice</div>
+        <ul><li>LLM intent parsing</li><li>gTTS, Korean / English</li><li>Speech input</li></ul>
+        <div class="links"><a href="#">GitHub</a><a href="#">LinkedIn</a></div>
+      </article>
+      <article class="member">
+        <div class="avatar" data-id="T-04">DD</div>
+        <h3>Member Name</h3>
+        <div class="role">Hardware &amp; Web App</div>
+        <ul><li>Add-on deck + power</li><li>TFT driver</li><li>Flask app + dashboard</li></ul>
+        <div class="links"><a href="#">GitHub</a><a href="#">LinkedIn</a></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CTA ============================== -->
+<section class="band">
+  <div class="wrap">
+    <h2>Watch it think, plan and drive in real time.</h2>
+    <a class="btn" href="dashboard.html">Open dashboard <span class="arrow">→</span></a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>CGR-1 · Autonomous Multilingual Campus Guide Robot</span>
+    <span>University · Course · 2026</span>
+  </div>
+</footer>
+
+</body>
+</html>

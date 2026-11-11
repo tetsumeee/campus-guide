@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CGR-1 · Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23eee' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3.5' fill='%23FF4F00'/%3E%3Cpath d='M12 12h9.5' stroke='%23eee' stroke-width='2'/%3E%3C/svg%3E">
+</head>
+<body>
+
+<!-- ============================== TOP BAR ============================== -->
+<header class="bar">
+  <a class="brand" href="index.html" title="Back to product page">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" fill="#FF4F00"/><path d="M12 12h9.5" stroke="currentColor" stroke-width="1.8"/></svg>
+    <span>CGR-1</span><span class="slash">/</span><span class="dim" data-i18n="console">Console</span>
+  </a>
+
+  <div class="bar-status">
+    <span class="chip" id="link-chip" title="Connection to the robot"><i class="led warn"></i><span id="link-text">SIM ×2</span></span>
+    <span class="chip" id="mode-chip"><span class="dim">MODE</span> <b id="mode-text">AUTO</b></span>
+    <span class="chip hide-sm"><span class="dim">UP</span> <b id="uptime">00:00:00</b></span>
+  </div>
+
+  <div class="bar-actions">
+    <div class="seg" role="group" aria-label="Language">
+      <button id="lang-ko" onclick="setLang('ko')">한국어</button>
+      <button id="lang-en" class="on" onclick="setLang('en')">ENG</button>
+    </div>
+    <button class="estop" id="estop" onclick="toggleEstop()" title="Emergency stop (Esc)">
+      <span class="estop-dot"></span><span id="estop-text">E-STOP</span>
+    </button>
+  </div>
+</header>
+
+<!-- ============================== TELEMETRY STRIP ============================== -->
+<div class="kpis">
+  <div class="kpi">
+    <div class="k">DRIVE BATT</div>
+    <div class="v"><span id="batt-drive">85</span><small>%</small></div>
+    <div class="meter"><i id="batt-drive-bar" style="width:85%"></i></div>
+  </div>
+  <div class="kpi">
+    <div class="k">AUX 5V RAIL</div>
+    <div class="v"><span id="batt-aux">92</span><small>%</small></div>
+    <div class="meter"><i id="batt-aux-bar" style="width:92%"></i></div>
+  </div>
+  <div class="kpi">
+    <div class="k">POSE <span class="dim">/map</span></div>
+    <div class="v mono-v"><span id="pose-x">0.55</span> <span id="pose-y">1.60</span> <small id="pose-t">0°</small></div>
+    <div class="sub">x · y [m] · θ</div>
+  </div>
+  <div class="kpi">
+    <div class="k">/cmd_vel</div>
+    <div class="v mono-v"><span id="cv-v">0.00</span> <small>m/s</small> <span id="cv-w">0.00</span> <small>rad/s</small></div>
+    <div class="sub">linear.x · angular.z</div>
+  </div>
+  <div class="kpi">
+    <div class="k">NAV2</div>
+    <div class="v"><span id="nav-state">IDLE</span></div>
+    <div class="sub" id="nav-goal">no goal</div>
+  </div>
+  <div class="kpi">
+    <div class="k">ROUTE</div>
+    <div class="v mono-v"><span id="route-rem">—</span><small> m</small></div>
+    <div class="meter"><i id="route-bar" style="width:0%"></i></div>
+  </div>
+  <div class="kpi">
+    <div class="k">/scan MIN</div>
+    <div class="v mono-v"><span id="scan-min">—</span><small> m</small></div>
+    <div class="sub" id="scan-bearing">—</div>
+  </div>
+</div>
+
+<!-- ============================== GRID ============================== -->
+<main class="grid">
+
+  <!-- MAP -->
+  <section class="panel p-map">
+    <header class="ph">
+      <h2><span class="idx">01</span><span data-i18n="map">Map · Nav2</span></h2>
+      <div class="ph-tools">
+        <button class="tool on" id="t-scan" onclick="toggleLayer('scan')">SCAN</button>
+        <button class="tool on" id="t-cost" onclick="toggleLayer('cost')">COSTMAP</button>
+        <button class="tool on" id="t-trail" onclick="toggleLayer('trail')">TRAIL</button>
+        <button class="tool" onclick="dock()" data-i18n="dock">DOCK</button>
+      </div>
+    </header>
+    <div class="map-wrap">
+      <canvas id="map"></canvas>
+      <div class="map-hud tl mono" id="map-cursor">campus.pgm · 80×60 · 0.05 m/px</div>
+      <div class="map-hud br mono" data-i18n="map_hint">click map → 2D goal pose</div>
+      <div class="estop-banner" id="estop-banner">E-STOP ENGAGED · /cmd_vel = 0</div>
+    </div>
+    <div class="dests" id="dests"><!-- filled by JS --></div>
+  </section>
+
+  <!-- CAMERA -->
+  <section class="panel p-cam">
+    <header class="ph">
+      <h2><span class="idx">02</span><span data-i18n="camera">Camera · YOLOv8</span></h2>
+      <span class="ph-meta mono">CAM0 · 640×360 · <span id="fps">30</span> FPS</span>
+    </header>
+    <div class="cam-wrap"><canvas id="cam" width="640" height="360"></canvas></div>
+    <div class="readouts">
+      <div><span>TARGET</span><b id="cv-target">—</b></div>
+      <div><span>CONF</span><b id="cv-conf">—</b></div>
+      <div><span>eₓ</span><b id="cv-ex">—</b></div>
+      <div><span>h / H</span><b id="cv-h">—</b></div>
+      <div><span>STEER</span><b id="cv-steer">—</b></div>
+    </div>
+  </section>
+
+  <!-- REQUEST -->
+  <section class="panel p-ask">
+    <header class="ph">
+      <h2><span class="idx">03</span><span data-i18n="request">Request · intent</span></h2>
+      <span class="ph-meta mono" id="speaker">SPK IDLE</span>
+    </header>
+    <div class="ask">
+      <div class="ask-row">
+        <button class="mic" id="mic" onclick="toggleMic()" title="Speak">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+        <form class="ask-input" onsubmit="event.preventDefault(); submitText();">
+          <input id="ask-text" type="text" autocomplete="off" placeholder="Where is the library?">
+          <button type="submit" data-i18n="send">SEND</button>
+        </form>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="json-head mono"><span>LLM → JSON</span><span id="parse-ms">—</span></div>
+      <pre class="json" id="json">{
+  <span class="jk">"target"</span>: <span class="jn">null</span>,
+  <span class="jk">"response"</span>: <span class="jn">null</span>
+}</pre>
+    </div>
+  </section>
+
+  <!-- TFT -->
+  <section class="panel p-tft">
+    <header class="ph">
+      <h2><span class="idx">04</span><span data-i18n="tft">Onboard TFT</span></h2>
+      <span class="ph-meta mono">2.0" · 320×240</span>
+    </header>
+    <div class="tft-bezel">
+      <div class="tft">
+        <div class="tft-top"><span>CGR-1</span><span id="tft-mode">AUTO</span><span id="tft-batt">85%</span></div>
+        <div class="tft-body">
+          <div class="tft-main" id="tft-main">Hello!</div>
+          <div class="tft-sub" id="tft-sub">Ask me where a building is</div>
+        </div>
+        <div class="tft-prog"><i id="tft-prog"></i></div>
+        <div class="tft-foot"><span id="tft-state">READY</span><span>KO/EN</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TELEOP -->
+  <section class="panel p-drive">
+    <header class="ph">
+      <h2><span class="idx">05</span><span data-i18n="drive">Manual drive</span></h2>
+      <label class="switch" title="Manual override">
+        <input type="checkbox" id="manual" onchange="setManual(this.checked)">
+        <span class="track"><span class="knob"></span></span>
+        <span class="mono sw-label" id="manual-label">OFF</span>
+      </label>
+    </header>
+    <div class="drive">
+      <div class="pad disabled" id="pad">
+        <span></span><button data-dir="up" aria-label="Forward">▲</button><span></span>
+        <button data-dir="left" aria-label="Turn left">◀</button><button data-dir="stop" class="stop" aria-label="Stop">■</button><button data-dir="right" aria-label="Turn right">▶</button>
+        <span></span><button data-dir="down" aria-label="Reverse">▼</button><span></span>
+      </div>
+      <div class="drive-help mono">
+        <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / arrows</div>
+        <div><kbd>Space</kbd> stop</div>
+        <div><kbd>Esc</kbd> e-stop</div>
+        <div class="dim" data-i18n="drive_hint">Hold to drive. Cancels the active goal.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LOG -->
+  <section class="panel p-log">
+    <header class="ph">
+      <h2><span class="idx">06</span><span data-i18n="log">Event log</span></h2>
+      <button class="tool" onclick="clearLog()" data-i18n="clear">CLEAR</button>
+    </header>
+    <div class="log mono" id="log"></div>
+  </section>
+
+</main>
+
+<script src="js/dashboard.js"></script>
+</body>
+</html>
