@@ -412,7 +412,7 @@ async function handleText(text) {
   let res = null, source = 'browser';
   if (CONFIG.intentEndpoint) {
     try {
-      const r = await fetch(CONFIG.intentEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang: S.lang, history: S.history }) });
+      const r = await fetch(CONFIG.intentEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, lang: S.lang, history: S.history }), signal: AbortSignal.timeout(25000) });
       if (!r.ok) throw new Error(r.status);
       res = await r.json(); source = res.source || 'api';
     } catch (e) { log('llm', `server unreachable (${e.message}), answering in browser`); }
@@ -468,7 +468,11 @@ function setVoice(state) {
 }
 const bars = [...document.querySelectorAll('#wave i')];
 let level = null;   // live microphone level while listening, when the browser allows it
+// Phones allow only one user of the microphone: opening a second stream for the meter
+// stops speech recognition from getting the mic on the next turn. Desktop only.
+const SINGLE_MIC = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 async function startLevel() {
+  if (SINGLE_MIC || level) return;
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -495,31 +499,40 @@ function drawLevel() {
 }
 
 /* ---------- speech in ---------- */
-let rec = null, recState = { started: false, error: null, finalText: '' };
+let rec = null;
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 function makeRecognizer() {
   const r = new SR();
   r.continuous = false; r.interimResults = true; r.maxAlternatives = 1;
+  r.lang = S.lang === 'ko' ? 'ko-KR' : 'en-US';
+  r.st = { started: false, error: null, finalText: '', ended: false };
+  const current = () => rec === r;
   r.onstart = () => {
-    recState.started = true;
+    r.st.started = true;
+    if (!current()) return;
     document.getElementById('orb-status').textContent = tv('st_listening');
     startLevel();
   };
   r.onresult = e => {
+    if (!current()) return;
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) recState.finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+      if (e.results[i].isFinal) r.st.finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
     }
-    setUser(recState.finalText + interim);
+    setUser(r.st.finalText + interim);
   };
-  r.onerror = e => { recState.error = e.error; };
+  r.onerror = e => { r.st.error = e.error; };
   r.onend = () => {
+    r.st.ended = true;
+    if (!current()) return;
+    rec = null;
     stopLevel();
-    const text = recState.finalText.trim();
+    const text = r.st.finalText.trim();
     if (text) { handleText(text); return; }
     setVoice('idle');
-    if (recState.error && recState.error !== 'aborted') micMessage(recState.error);
-    else if (recState.started) micMessage('no-speech');
+    if (r.st.error && r.st.error !== 'aborted') micMessage(r.st.error);
+    else if (r.st.started) micMessage('no-speech');
   };
   return r;
 }
@@ -539,23 +552,52 @@ function micMessage(code) {
   clearTimeout(micMessage._t);
   micMessage._t = setTimeout(() => { el.classList.remove('warn'); if (S.voice === 'idle') el.textContent = tv('st_idle'); }, 6000);
 }
+let micStarting = false;
 function toggleMic() {
-  if (busy) return;
-  if (S.voice === 'speaking') { speechSynthesis.cancel(); setVoice('idle'); return; }
-  if (S.voice === 'listening') { if (rec) rec.stop(); return; }
+  if (micStarting) return;
+  if (busy) {
+    const el = document.getElementById('orb-status');
+    el.textContent = S.lang === 'ko' ? '답변을 준비하고 있어요. 잠시만요…' : 'Still working on the answer, one moment…';
+    return;
+  }
+  if (S.voice === 'listening') {                      // second tap while listening = done talking
+    if (rec) { try { rec.stop(); } catch (e) {} } else setVoice('idle');
+    return;
+  }
   if (!SR) { micMessage('unsupported'); document.getElementById('ask-text').focus(); return; }
   if (!window.isSecureContext) { micMessage('insecure'); return; }
-  document.getElementById('orb-status').classList.remove('warn');
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
-  recState = { started: false, error: null, finalText: '' };
-  rec = makeRecognizer();
-  rec.lang = S.lang === 'ko' ? 'ko-KR' : 'en-US';
+  startListening();
+}
+async function startListening() {
+  micStarting = true;
+  const status = document.getElementById('orb-status');
+  status.classList.remove('warn'); clearTimeout(micMessage._t);
   setVoice('listening'); setUser('');
-  // Until the browser confirms (the permission popup may be open), say we're waiting for the mic.
-  document.getElementById('orb-status').textContent = S.lang === 'ko' ? '마이크를 기다리는 중… (권한을 허용해 주세요)' : 'Waiting for the microphone… (allow access if asked)';
-  try { rec.start(); } catch (e) { setVoice('idle'); micMessage(); return; }
-  const mine = rec;
-  setTimeout(() => { if (rec === mine && !recState.started && S.voice === 'listening') { try { rec.abort(); } catch (e) {} setVoice('idle'); micMessage(); } }, 15000);
+  status.textContent = S.lang === 'ko' ? '마이크를 기다리는 중… (권한을 허용해 주세요)' : 'Waiting for the microphone… (allow access if asked)';
+
+  // Gil may still be talking: phones can't record while the speaker is in use.
+  if ('speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending)) {
+    speechSynthesis.cancel(); await sleep(350);
+  }
+  // Release the previous session and give the phone a moment to free the mic.
+  const old = rec; rec = null;
+  if (old && !old.st.ended) {
+    try { old.abort(); } catch (e) {}
+    for (let i = 0; i < 10 && !old.st.ended; i++) await sleep(60);
+  }
+  stopLevel();
+
+  let r = makeRecognizer(); rec = r;
+  try { r.start(); }
+  catch (e) {                                         // InvalidStateError: the old session hadn't let go yet
+    await sleep(400);
+    r = makeRecognizer(); rec = r;
+    try { r.start(); } catch (e2) { rec = null; micStarting = false; setVoice('idle'); micMessage(); return; }
+  }
+  micStarting = false;
+  setTimeout(() => {
+    if (rec === r && !r.st.started && S.voice === 'listening') { try { r.abort(); } catch (e) {} rec = null; setVoice('idle'); micMessage(); }
+  }, 15000);
 }
 
 /* ---------- speech out ---------- */
@@ -567,6 +609,7 @@ function pickVoice(lang) {
 function speak(text) {
   setGil(text);
   log('tts', text);
+  if (S.voice === 'listening') return;              // don't talk over the visitor (or into the mic)
   setVoice('speaking');
   let finished = false;
   const done = () => { if (finished) return; finished = true; if (S.voice === 'speaking') setVoice('idle'); };
@@ -581,7 +624,7 @@ function speak(text) {
     u.onend = done; u.onerror = done;
     speechSynthesis.speak(u);
     setTimeout(() => { if (!started) setTimeout(done, estimate - 1200); }, 1200);   // no audio output: fall back to an estimate
-    setTimeout(done, 25000);
+    setTimeout(done, estimate + 4000);                // mobile browsers sometimes never fire onend
   } else setTimeout(done, estimate);
 }
 /* ==========================================================================
