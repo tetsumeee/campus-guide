@@ -26,7 +26,7 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 ROOT = Path(__file__).resolve().parent.parent           # website files
-KB_PATH = Path(os.environ.get("CAMPUS_KB", Path(__file__).parent / "knowledge" / "campus.json"))
+KB_PATH = Path(os.environ.get("CAMPUS_KB", ROOT / "data" / "campus.json"))
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
 API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 PORT = int(os.environ.get("PORT", "8000"))

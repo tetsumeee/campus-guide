@@ -7,7 +7,7 @@ Website and operator dashboard for an autonomous, multilingual (Korean / English
 | File | What it is |
 | --- | --- |
 | `index.html` | Product page: concept, how it works, navigation, interface, hardware, team |
-| `dashboard.html` | Operator console: map + planner, LiDAR, camera / landmark detection, voice + intent, TFT mirror, teleop, E-Stop, event log |
+| `dashboard.html` | Demo console: street-map style campus map with turn-by-turn directions, camera / landmark detection, the Gil voice assistant, TFT mirror, manual drive, E-Stop |
 
 No build step. Open `index.html` in a browser, or serve the folder:
 
@@ -19,7 +19,7 @@ python3 -m http.server 8000
 
 The robot talks as **Gil** (길이, short for 길잡이, "guide"), a friendly student-guide persona. Visitors can ask for directions *or* ask tour-guide questions: building history, opening hours, what's inside, Wi-Fi, parking, shuttle buses, and so on. Follow-up questions work ("When was the library built?" → "What time does it close?").
 
-Answers come only from **`server/knowledge/campus.json`**. The sample file is placeholder data for a fictional "Sample University": **replace it with your campus's real facts** before demoing. The server reloads the file automatically when you save it.
+Answers come only from **`data/campus.json`**. The sample file is placeholder data for a fictional "Sample University": **replace it with your campus's real facts** before demoing. The server reloads the file automatically when you save it.
 
 ### Run the guide server
 
@@ -34,7 +34,7 @@ python server/app.py                # open http://localhost:8000/dashboard.html
 - `POST /api/ask` with `{"text", "lang", "history"}` returns `{"intent": "navigate"|"answer"|"clarify", "target", "lang", "response"}`. The robot's onboard voice node (Mode A) can call the same endpoint.
 - Change the persona (name, personality, greetings) in the `persona` block of `campus.json`.
 
-When the dashboard is opened as a plain file or from GitHub Pages (no server), it falls back to directions only.
+Without the server (for example on GitHub Pages) the dashboard still answers campus questions: it loads `data/campus.json` in the browser and uses the same keyword matching. Opened as a plain local file it can only give directions, because browsers block reading the JSON file there.
 
 ## Dashboard: simulation vs. real robot
 
@@ -55,5 +55,5 @@ css/site.css        product page styles
 css/dashboard.css   console styles
 js/dashboard.js     simulation, planner, UI logic
 server/app.py       Flask server: website + /api/ask (Gemini + fallback)
-server/knowledge/campus.json   persona + everything the guide knows
+data/campus.json   persona + everything the guide knows
 ```

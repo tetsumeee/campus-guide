@@ -6,7 +6,7 @@
   <title>CGR-1 · Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Roboto:ital,wght@0,400;0,500;0,700;1,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke='%23eee' stroke-width='2'/%3E%3Ccircle cx='12' cy='12' r='3.5' fill='%23FF4F00'/%3E%3Cpath d='M12 12h9.5' stroke='%23eee' stroke-width='2'/%3E%3C/svg%3E">
 </head>
@@ -20,7 +20,7 @@
   </a>
 
   <div class="bar-status">
-    <span class="chip" id="link-chip" title="Connection to the robot"><i class="led warn"></i><span id="link-text">SIM ×2</span></span>
+    <span class="chip" id="link-chip" title="Connection to the robot"><i class="led warn"></i><span id="link-text">DEMO · SIM</span></span>
     <span class="chip" id="mode-chip"><span class="dim">MODE</span> <b id="mode-text">AUTO</b></span>
     <span class="chip hide-sm"><span class="dim">UP</span> <b id="uptime">00:00:00</b></span>
   </div>
@@ -81,21 +81,50 @@
   <!-- MAP -->
   <section class="panel p-map">
     <header class="ph">
-      <h2><span class="idx">01</span><span data-i18n="map">Map · Nav2</span></h2>
-      <div class="ph-tools">
-        <button class="tool on" id="t-scan" onclick="toggleLayer('scan')">SCAN</button>
-        <button class="tool on" id="t-cost" onclick="toggleLayer('cost')">COSTMAP</button>
-        <button class="tool on" id="t-trail" onclick="toggleLayer('trail')">TRAIL</button>
-        <button class="tool" onclick="dock()" data-i18n="dock">DOCK</button>
-      </div>
+      <h2><span class="idx">01</span><span data-i18n="map">Campus map</span></h2>
+      <span class="ph-meta mono">1 : 50 model · 4.0 × 3.0 m</span>
     </header>
     <div class="map-wrap">
       <canvas id="map"></canvas>
-      <div class="map-hud tl mono" id="map-cursor">campus.pgm · 80×60 · 0.05 m/px</div>
-      <div class="map-hud br mono" data-i18n="map_hint">click map → 2D goal pose</div>
+
+      <div class="map-chips" id="map-chips"></div>
+
+      <div class="nav-banner" id="nav-banner" hidden>
+        <span class="nb-icon" id="nb-icon"></span>
+        <div class="nb-main"><div class="nb-dist" id="nb-dist"></div><div class="nb-text" id="nb-text"></div></div>
+      </div>
+
+      <div class="map-ctrls">
+        <button class="mbtn" id="t-scan" onclick="toggleLayer('scan')" title="LiDAR + camera view">
+          <svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg>
+        </button>
+        <button class="mbtn" onclick="recenter()" title="Follow the robot">
+          <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0 0 13 3.06V1h-2v2.06A8.994 8.994 0 0 0 3.06 11H1v2h2.06A8.994 8.994 0 0 0 11 20.94V23h2v-2.06A8.994 8.994 0 0 0 20.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+        </button>
+        <div class="mzoom">
+          <button class="mbtn" onclick="zoomBy(1.3); view.follow = false" title="Zoom in"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+          <button class="mbtn" onclick="zoomBy(1 / 1.3); view.follow = false" title="Zoom out"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></button>
+        </div>
+      </div>
+
+      <div class="place" id="place" hidden>
+        <button class="pc-close" onclick="closePlace()" aria-label="Close">×</button>
+        <div class="pc-head"><span class="pc-ic"></span><div><div class="pc-name"></div><div class="pc-cat"></div></div></div>
+        <p class="pc-about"></p>
+        <p class="pc-hours"></p>
+        <div class="pc-actions">
+          <button class="pc-dir" onclick="if (S.place) goTo(S.place)"><svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg><span>Directions</span></button>
+          <button class="pc-ask" onclick="if (S.place) handleText(S.lang === 'ko' ? bname(B[S.place]) + '에 대해 알려줘' : 'Tell me about the ' + bname(B[S.place]))"><span>Ask Gil</span></button>
+        </div>
+      </div>
+
+      <div class="nav-sheet" id="nav-sheet" hidden>
+        <div><div class="ns-time" id="ns-time"></div><div class="ns-dist" id="ns-dist"></div></div>
+        <button class="ns-exit" id="ns-exit" onclick="cancelNav()">Exit</button>
+      </div>
+
       <div class="estop-banner" id="estop-banner">E-STOP ENGAGED · /cmd_vel = 0</div>
     </div>
-    <div class="dests" id="dests"><!-- filled by JS --></div>
   </section>
 
   <!-- CAMERA -->
@@ -114,29 +143,46 @@
     </div>
   </section>
 
-  <!-- REQUEST -->
+  <!-- ASK GIL -->
   <section class="panel p-ask">
     <header class="ph">
-      <h2><span class="idx">03</span><span data-i18n="request">Ask the guide</span></h2>
+      <h2><span class="idx">03</span><span data-i18n="request">Ask Gil</span></h2>
       <span class="ph-meta mono" id="speaker">SPK IDLE</span>
     </header>
-    <div class="ask">
-      <div class="ask-row">
-        <button class="mic" id="mic" onclick="toggleMic()" title="Speak">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-        </button>
-        <form class="ask-input" onsubmit="event.preventDefault(); submitText();">
-          <input id="ask-text" type="text" autocomplete="off" placeholder="Ask anything about campus…">
-          <button type="submit" data-i18n="send">SEND</button>
-        </form>
+    <div class="assistant">
+      <div class="convo">
+        <div class="bubble user" id="b-user" hidden></div>
+        <div class="bubble gil">
+          <div class="who"><span class="gil-av">G</span><span id="gil-name">Gil</span></div>
+          <p id="gil-text"></p>
+          <button class="offer" id="offer" hidden onclick="if (S.offer) goTo(S.offer)">
+            <svg viewBox="0 0 24 24"><path d="M21.71 11.29l-9-9a.996.996 0 0 0-1.41 0l-9 9a.996.996 0 0 0 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9a.996.996 0 0 0 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg><span></span>
+          </button>
+        </div>
       </div>
+
+      <div class="orb-wrap" id="orb-wrap" data-state="idle">
+        <div class="orb-stage">
+          <span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>
+          <span class="spin"></span>
+          <button class="orb" id="mic" onclick="toggleMic()" aria-label="Talk to Gil">
+            <svg class="ic-mic" viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.91-3c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15a.998.998 0 0 0-.98-.85c-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08a6.993 6.993 0 0 0 5.91-5.78c.1-.6-.39-1.14-1-1.14z"/></svg>
+            <svg class="ic-stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/></svg>
+          </button>
+        </div>
+        <div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="orb-status" id="orb-status">Tap to talk</div>
+      </div>
+
+      <form class="ask-input" onsubmit="event.preventDefault(); submitText();">
+        <input id="ask-text" type="text" autocomplete="off" placeholder="Or type a question…">
+        <button type="submit" data-i18n="send">SEND</button>
+      </form>
       <div class="chips" id="chips"></div>
-      <div class="json-head mono"><span>LLM → JSON</span><span id="parse-ms">—</span></div>
-      <pre class="json" id="json">{
-  <span class="jk">"target"</span>: <span class="jn">null</span>,
-  <span class="jk">"response"</span>: <span class="jn">null</span>
-}</pre>
-      <button class="offer" id="offer" hidden onclick="if (S.offer) { goTo(S.offer); setOffer(null); }"></button>
+      <details class="ai-raw">
+        <summary class="mono"><span>AI OUTPUT</span><span id="parse-ms">—</span></summary>
+        <pre class="json" id="json">{ }</pre>
+      </details>
     </div>
   </section>
 
@@ -182,15 +228,6 @@
         <div class="dim" data-i18n="drive_hint">Hold to drive. Cancels the active goal.</div>
       </div>
     </div>
-  </section>
-
-  <!-- LOG -->
-  <section class="panel p-log">
-    <header class="ph">
-      <h2><span class="idx">06</span><span data-i18n="log">Event log</span></h2>
-      <button class="tool" onclick="clearLog()" data-i18n="clear">CLEAR</button>
-    </header>
-    <div class="log mono" id="log"></div>
   </section>
 
 </main>
