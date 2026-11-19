@@ -2,7 +2,7 @@
 CGR-1 campus guide server.
 
 Serves the website + dashboard and answers visitor questions as the guide
-persona, using Gemini with the campus knowledge base in knowledge/campus.json.
+persona, using Gemini with the campus knowledge base in data/campus.json.
 
     pip install -r server/requirements.txt
     export GEMINI_API_KEY=...        # free key from https://aistudio.google.com/apikey
