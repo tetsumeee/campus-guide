@@ -392,3 +392,4 @@ kbd { display: inline-block; min-width: 18px; padding: 2px 4px; margin-right: 3p
 }
 
 @media (max-width: 760px) { .map-wrap { flex: none; min-height: 0; aspect-ratio: 4 / 3; } }
+.orb-status.warn { color: var(--warn) !important; max-width: 320px; }

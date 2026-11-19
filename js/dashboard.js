@@ -219,7 +219,6 @@ const T = {
     say_estop: 'Emergency stop activated.', say_blocked: 'Emergency stop is active. Release it first.',
     say_lang: 'Language set to English.', say_noplan: 'I could not find a path there.',
     chips: ['Where is the Business School?', 'When was the library built?', 'Where can I get Wi-Fi?', 'Who are you?'],
-    demo_q: ['Take me to the cafe', 'When was the library built?', 'What is in the Engineering Building?', 'Where is the Business School?'],
     searching: 'searching…', idle: 'idle',
     dir: 'Directions', ask: 'Ask Gil', exit: 'Exit', arrived: n => `Arrived at ${n}`,
     head: r => `Head along ${r}`, turn_l: r => `Turn left onto ${r}`, turn_r: r => `Turn right onto ${r}`, cont: r => `Continue on ${r}`, arrive_at: n => `Arrive at ${n}`,
@@ -240,7 +239,6 @@ const T = {
     say_estop: '비상 정지가 작동되었습니다.', say_blocked: '비상 정지 상태입니다. 먼저 해제해 주세요.',
     say_lang: '한국어로 설정되었습니다.', say_noplan: '그곳으로 가는 경로를 찾지 못했습니다.',
     chips: ['경영대학 어디에 있나요?', '도서관은 몇 시까지 해요?', '셔틀버스 어디서 타요?', '넌 누구야?'],
-    demo_q: ['카페로 데려다 주세요', '도서관은 언제 지어졌어요?', '공학관에는 뭐가 있어요?', '경영대학 어디에 있나요?'],
     searching: '탐색 중…', idle: '대기',
     dir: '길찾기', ask: '길이에게 질문', exit: '종료', arrived: n => `${n} 도착`,
     head: r => `${r} 따라 이동`, turn_l: r => `${r}에서 좌회전`, turn_r: r => `${r}에서 우회전`, cont: r => `${r} 직진`, arrive_at: n => `${n} 도착`,
@@ -497,58 +495,67 @@ function drawLevel() {
 }
 
 /* ---------- speech in ---------- */
-let rec = null;
-(function initSpeech() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  const r = rec = new SR(); r.continuous = false; r.interimResults = true;
-  let finalText = '';
-  r.onstart = () => { r._started = true; finalText = ''; setVoice('listening'); setUser(''); startLevel(); };
+let rec = null, recState = { started: false, error: null, finalText: '' };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+function makeRecognizer() {
+  const r = new SR();
+  r.continuous = false; r.interimResults = true; r.maxAlternatives = 1;
+  r.onstart = () => {
+    recState.started = true;
+    document.getElementById('orb-status').textContent = tv('st_listening');
+    startLevel();
+  };
   r.onresult = e => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+      if (e.results[i].isFinal) recState.finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
     }
-    setUser(finalText + interim);
+    setUser(recState.finalText + interim);
   };
-  r.onerror = e => { r._error = e.error; };
+  r.onerror = e => { recState.error = e.error; };
   r.onend = () => {
     stopLevel();
-    if (rec !== r) return;                           // already switched to the sample-question fallback
-    if (finalText.trim()) handleText(finalText);
-    else if (r._error && r._error !== 'no-speech' && r._error !== 'aborted') micUnavailable();
-    else if (S.voice === 'listening') setVoice('idle');
+    const text = recState.finalText.trim();
+    if (text) { handleText(text); return; }
+    setVoice('idle');
+    if (recState.error && recState.error !== 'aborted') micMessage(recState.error);
+    else if (recState.started) micMessage('no-speech');
   };
-})();
-let demoIdx = 0;
+  return r;
+}
+function micMessage(code) {
+  const ko = S.lang === 'ko';
+  const msg = {
+    'not-allowed': ko ? '마이크 권한이 거부되었어요. 주소창의 마이크 아이콘에서 허용해 주세요.' : 'Microphone permission was denied. Allow it from the mic icon in the address bar.',
+    'service-not-allowed': ko ? '이 브라우저에서는 음성 인식을 쓸 수 없어요. Chrome이나 Edge를 사용해 주세요.' : 'Speech recognition is blocked here. Use Chrome or Edge over http://localhost or https.',
+    'audio-capture': ko ? '마이크를 찾을 수 없어요. 마이크 연결을 확인해 주세요.' : 'No microphone found. Check that one is connected.',
+    'network': ko ? '음성 인식 서버에 연결할 수 없어요. 인터넷 연결을 확인해 주세요.' : "Can't reach the speech service. Check the internet connection.",
+    'no-speech': ko ? '말소리가 들리지 않았어요. 다시 눌러서 말해 주세요.' : "I didn't hear anything. Tap and try again.",
+    'unsupported': ko ? '이 브라우저는 음성 입력을 지원하지 않아요. Chrome이나 Edge를 사용하거나 아래에 입력해 주세요.' : "This browser doesn't support voice input. Use Chrome or Edge, or type below.",
+    'insecure': ko ? '음성 입력은 http://localhost 또는 https 주소에서만 작동해요.' : 'Voice input only works on http://localhost or an https address, not a local file.',
+  }[code] || (ko ? '음성 입력을 시작할 수 없어요. 아래에 입력해 주세요.' : "Couldn't start voice input. Type your question below.");
+  const el = document.getElementById('orb-status');
+  el.textContent = msg; el.classList.add('warn');
+  clearTimeout(micMessage._t);
+  micMessage._t = setTimeout(() => { el.classList.remove('warn'); if (S.voice === 'idle') el.textContent = tv('st_idle'); }, 6000);
+}
 function toggleMic() {
   if (busy) return;
   if (S.voice === 'speaking') { speechSynthesis.cancel(); setVoice('idle'); return; }
-  if (S.voice === 'listening') { if (rec && rec._started) rec.stop(); return; }
-  if (!rec) { demoQuestion(); return; }
-  setVoice('listening'); setUser('');               // react instantly, before the browser confirms
-  rec._started = false; rec._error = null;
+  if (S.voice === 'listening') { if (rec) rec.stop(); return; }
+  if (!SR) { micMessage('unsupported'); document.getElementById('ask-text').focus(); return; }
+  if (!window.isSecureContext) { micMessage('insecure'); return; }
+  document.getElementById('orb-status').classList.remove('warn');
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  recState = { started: false, error: null, finalText: '' };
+  rec = makeRecognizer();
   rec.lang = S.lang === 'ko' ? 'ko-KR' : 'en-US';
-  try { rec.start(); } catch (e) { micUnavailable(); return; }
-  setTimeout(() => { if (rec && !rec._started && S.voice === 'listening') { try { rec.abort(); } catch (e) {} micUnavailable(); } }, 1500);
-}
-function micUnavailable() {
-  // No microphone or permission: play a sample question so the flow can still be shown.
-  rec = null;
-  setVoice('idle');
-  demoQuestion();
-}
-function demoQuestion() {
-  if (busy) return;
-  const qs = t('demo_q'), q = qs[demoIdx++ % qs.length];
   setVoice('listening'); setUser('');
-  let i = 0;
-  setTimeout(() => {
-    const ti = setInterval(() => {
-      i += 1; setUser(q.slice(0, i));
-      if (i >= q.length) { clearInterval(ti); setTimeout(() => handleText(q), 450); }
-    }, 55);
-  }, 900);
+  // Until the browser confirms (the permission popup may be open), say we're waiting for the mic.
+  document.getElementById('orb-status').textContent = S.lang === 'ko' ? '마이크를 기다리는 중… (권한을 허용해 주세요)' : 'Waiting for the microphone… (allow access if asked)';
+  try { rec.start(); } catch (e) { setVoice('idle'); micMessage(); return; }
+  const mine = rec;
+  setTimeout(() => { if (rec === mine && !recState.started && S.voice === 'listening') { try { rec.abort(); } catch (e) {} setVoice('idle'); micMessage(); } }, 15000);
 }
 
 /* ---------- speech out ---------- */

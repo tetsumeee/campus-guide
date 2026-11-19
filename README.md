@@ -25,11 +25,11 @@ Answers come only from **`data/campus.json`**. The sample file is placeholder da
 
 ```bash
 pip install -r server/requirements.txt
-export GEMINI_API_KEY=your-key      # free key: https://aistudio.google.com/apikey
+cp .env.example .env                # then put your key in .env (it is git-ignored)
 python server/app.py                # open http://localhost:8000/dashboard.html
 ```
 
-- `GEMINI_MODEL` picks the model (default `gemini-flash-latest`).
+- `GEMINI_MODEL` is the list of models tried in order (default `gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.8-flash`). If one is busy, retired or takes longer than 10 s, the next one answers. The bigger free-tier models are often overloaded, so the fast "lite" models go first.
 - No key, no internet, or a Gemini error: it falls back to keyword matching over the same knowledge base, so the robot never goes silent.
 - `POST /api/ask` with `{"text", "lang", "history"}` returns `{"intent": "navigate"|"answer"|"clarify", "target", "lang", "response"}`. The robot's onboard voice node (Mode A) can call the same endpoint.
 - Change the persona (name, personality, greetings) in the `persona` block of `campus.json`.

@@ -5,7 +5,7 @@ Serves the website + dashboard and answers visitor questions as the guide
 persona, using Gemini with the campus knowledge base in data/campus.json.
 
     pip install -r server/requirements.txt
-    export GEMINI_API_KEY=...        # free key from https://aistudio.google.com/apikey
+    cp .env.example .env             # then put your key in .env (never commit it)
     python server/app.py             # http://localhost:8000
 
 Without a key it still runs, answering from the knowledge base with simple
@@ -26,8 +26,27 @@ from pathlib import Path
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 ROOT = Path(__file__).resolve().parent.parent           # website files
+
+
+def load_dotenv(path: Path) -> None:
+    """Read KEY=value lines from .env (kept out of git) into the environment."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_dotenv(ROOT / ".env")
 KB_PATH = Path(os.environ.get("CAMPUS_KB", ROOT / "data" / "campus.json"))
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
+# Tried in order for every question; if one is busy, retired or slow, the next is used.
+# Fast "lite" models first: the bigger free-tier models are often overloaded.
+MODELS = [m.strip() for m in os.environ.get(
+    "GEMINI_MODEL", "gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-3.8-flash").split(",") if m.strip()]
+MODEL = MODELS[0]
+TIMEOUT_MS = int(os.environ.get("GEMINI_TIMEOUT_MS", "10000"))  # per model (Google minimum is 10 s), so the robot never hangs
 API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
 PORT = int(os.environ.get("PORT", "8000"))
 MAX_HISTORY = 8          # previous turns sent for follow-up questions ("when was it built?")
@@ -93,7 +112,9 @@ def gemini():
     global _client
     if _client is None:
         from google import genai
-        _client = genai.Client(api_key=API_KEY)
+        from google.genai import types
+        _client = genai.Client(api_key=API_KEY, http_options=types.HttpOptions(
+            timeout=TIMEOUT_MS, retry_options=types.HttpRetryOptions(attempts=1)))
     return _client
 
 
@@ -118,17 +139,26 @@ def ask_gemini(text: str, lang: str, history: list[dict], kb: dict, system_promp
     ]
     contents.append(types.Content(role="user", parts=[types.Part.from_text(text=text)]))
 
-    resp = gemini().models.generate_content(
-        model=MODEL,
-        contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            response_mime_type="application/json",
-            response_schema=schema,
-            temperature=0.5,
-        ),
+    config = types.GenerateContentConfig(
+        system_instruction=system_prompt,
+        response_mime_type="application/json",
+        response_schema=schema,
+        temperature=0.5,
     )
-    data = json.loads(resp.text)
+    last_error = None
+    for model in MODELS:
+        try:
+            resp = gemini().models.generate_content(model=model, contents=contents, config=config)
+            data = json.loads(resp.text)
+            data["model"] = model
+            break
+        except Exception as e:   # busy (503), quota (429), retired (404), timeout: try the next model
+            if "API key" in str(e) or "PERMISSION_DENIED" in str(e):
+                raise
+            log.warning("%s failed (%s), trying the next model", model, str(e)[:80])
+            last_error = e
+    else:
+        raise last_error
     if data.get("target") not in ids:
         data["target"] = "none"
     return data
@@ -213,7 +243,7 @@ def api_ask():
     if API_KEY:
         try:
             result = ask_gemini(text, lang, history, kb, prompt)
-            source = MODEL
+            source = result.pop("model")
         except Exception as e:  # network, quota, bad JSON: fall back rather than go silent
             log.warning("gemini failed, using local fallback: %s", e)
     if result is None:
