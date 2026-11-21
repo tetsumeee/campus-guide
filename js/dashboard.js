@@ -12,11 +12,17 @@ const CONFIG = {
   knowledgeUrl: 'data/campus.json',
 };
 
+// Robot hooks. These do nothing in the demo; js/robot.js replaces them when the
+// robot is switched on in js/robot-config.js and rosbridge is reachable.
 const ROBOT = {
-  sendGoal(x, y, theta) { log('nav2', `NavigateToPose x=${x.toFixed(2)} y=${y.toFixed(2)} θ=${theta.toFixed(2)}`); },
-  cancelGoal() { log('nav2', 'goal canceled'); },
-  cmdVel(v, w) { /* publish geometry_msgs/Twist on /cmd_vel */ },
-  estop(on) { log('safety', on ? 'E-STOP engaged' : 'E-STOP released'); },
+  live: () => false,                 // true while connected: pose comes from the robot
+  step(dt) {},                       // called instead of the simulation step while live
+  sendGoal(key, x, y, th) { log('nav2', `goal ${key} x=${x.toFixed(2)} y=${(WORLD_H - y).toFixed(2)}`); },
+  cancelGoal() {},
+  estop(on) {},
+  tft(info) {},                      // mirror the TFT text to the robot's screen
+  say(text, lang) {},                // also speak on the robot's speaker
+  drawCamera(g, w, h) { return false; },
 };
 
 /* ==========================================================================
@@ -301,7 +307,7 @@ function goTo(key) {
   if (!path) { speak(t('say_noplan')); setNavState('FAILED', 'err'); return false; }
   const end = path[path.length - 1];
   S.nav = { key, goal: [end.x, end.y, b.goal[2]], path, wp: 1, total: pathLen(path), phase: 'DRIVE' };
-  ROBOT.sendGoal(end.x, WORLD_H - end.y, -b.goal[2]);
+  ROBOT.sendGoal(key, end.x, end.y, b.goal[2]);
   setNavState('NAVIGATING', 'active');
   closePlace(); setOffer(null);
   if (view.z > 1.01) view.follow = true;
@@ -609,6 +615,7 @@ function pickVoice(lang) {
 function speak(text) {
   setGil(text);
   log('tts', text);
+  ROBOT.say(text, S.lang);
   if (S.voice === 'listening') return;              // don't talk over the visitor (or into the mic)
   setVoice('speaking');
   let finished = false;
@@ -636,7 +643,7 @@ function toggleEstop() {
   document.getElementById('estop-text').textContent = S.estop ? 'RELEASE' : 'E-STOP';
   ROBOT.estop(S.estop);
   if (S.estop) {
-    S.v = 0; S.w = 0; ROBOT.cmdVel(0, 0);
+    S.v = 0; S.w = 0;
     if (S.nav) { S.nav = null; renderNavUI(); }
     setNavState('E-STOP', 'err');
     speak(t('say_estop'));
@@ -692,12 +699,14 @@ function refreshTFT() {
   document.getElementById('tft-state').textContent = state;
   document.getElementById('tft-mode').textContent = S.estop ? 'STOP' : S.mode;
   document.querySelector('.tft').classList.toggle('alert', alert);
+  ROBOT.tft({ main: lines[0], sub: lines[1], state, mode: S.estop ? 'STOP' : S.mode, batt: Math.round(S.battDrive), lang: S.lang });
 }
 
 /* ==========================================================================
    Simulation step
    ========================================================================== */
 function step(dt) {
+  if (ROBOT.live()) { ROBOT.step(dt); return; }
   const P = S.pose;
   if (S.estop) { S.v = 0; S.w = 0; }
   else if (S.mode === 'MANUAL') {
@@ -734,7 +743,6 @@ function step(dt) {
   P.th = nth;
   if (!blocked) { P.x = nx; P.y = ny; }
   else if (S.v !== 0) { if (!S._bumpT || performance.now() - S._bumpT > 1500) { log('safety', 'collision guard: motion blocked'); S._bumpT = performance.now(); } S.v = 0; }
-  ROBOT.cmdVel(S.v, -S.w);
 
   // trail
   const lt = S.trail[S.trail.length - 1];
@@ -757,6 +765,7 @@ function arrive() {
 
 /* ---------- LiDAR (LDS: 360 samples, 0.12–3.5 m; we sample every 2°) ---------- */
 function scan() {
+  if (ROBOT.live()) return;                         // real /scan arrives through the bridge
   const P = S.pose, out = []; let min = null;
   for (let k = 0; k < 180; k++) {
     const a = k * Math.PI / 90;
@@ -1054,6 +1063,7 @@ const cam = document.getElementById('cam'), cctx = cam.getContext('2d');
 const CW = 640, CH = 360, HFOV = 62.2 * Math.PI / 180, FX = (CW / 2) / Math.tan(HFOV / 2), HZ = CH * 0.46, CAM_H = 0.10;
 
 function drawCam(now) {
+  if (ROBOT.drawCamera(cctx, CW, CH)) return;       // live robot camera
   const g = cctx, P = S.pose;
   // sky / floor
   g.fillStyle = '#121316'; g.fillRect(0, 0, CW, HZ);

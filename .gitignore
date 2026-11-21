@@ -4,3 +4,15 @@ __pycache__/
 .venv/
 node_modules/
 .env
+
+# ROS workspace build output (robot)
+robot_ws/build/
+robot_ws/install/
+robot_ws/log/
+*.pyc
+venv/
+*.vdi
+*.vbox
+*.vbox-prev
+Logs/
+tft_preview.png
